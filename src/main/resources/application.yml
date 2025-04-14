@@ -1,0 +1,41 @@
+spring:
+    application:
+        name: Loyalty Management Standalone Application
+    datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/lmsabackend
+        username: root
+        password: password
+    jpa:
+        hibernate:
+            ddl-auto: update
+        properties:
+            dialect: org.hibernate.dialect.MySQL8Dialect
+    mail:
+        host: smtp.gmail.com
+        port: 587
+        username: googleEmailId
+        password: googlePassword
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true
+                        required: true
+                    ssl:
+                        trust: smtp.gmail.com
+
+server:
+    port: 8080
+    servlet:
+        context-path: /lmsa
+
+jwt:
+    secret: my_super_secret_key_is_very_secret_JWT_key_123456789
+
+logging:
+    level:
+        org:
+            hibernate: warn
+            hibernate.orm.connections.pooling: warn
