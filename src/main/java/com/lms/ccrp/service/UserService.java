@@ -28,11 +28,10 @@ public class UserService {
 
     public User createUser(UserDTO userDTO) {
         User user = new User();
-        user.setUsername(userDTO.getUsername());
+        user.setUserName(userDTO.getUserName());
         user.setEmail(userDTO.getEmail());
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         user.setRole(userDTO.getRole());
-        user.setTotalPoints(0);
         return userRepository.save(user);
     }
 
@@ -65,5 +64,16 @@ public class UserService {
         if (existingUser.isPresent()) {
             throw new RuntimeException("User already exists with email: " + dto.getEmail());
         }
+    }
+
+    public User fetchUser(Long userId) {
+        Optional<User> existingUser = userRepository.findById(userId);
+        return existingUser.orElse(null);
+
+    }
+
+    public void logout(String token) {
+        Optional<JwtToken> jwtToken = jwtTokenRepository.findByToken(token);
+        jwtToken.ifPresent(value -> jwtTokenRepository.delete(value));
     }
 }

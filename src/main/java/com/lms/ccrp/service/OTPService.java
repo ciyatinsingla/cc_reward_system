@@ -18,7 +18,7 @@ public class OTPService {
     @Autowired
     private JavaMailSender mailSender;
 
-    public String generateOtp(String email) {
+    public String generateOTP(String email) {
         String otp = String.valueOf(100000 + random.nextInt(900000));
         otpStorage.put(email, otp);
 
@@ -32,12 +32,12 @@ public class OTPService {
         return otp;
     }
 
-    public boolean validateOtp(String email, String enteredOtp) {
+    public boolean validateOTP(String email, String enteredOtp) {
         String correctOtp = otpStorage.get(email);
         return correctOtp != null && correctOtp.equals(enteredOtp);
     }
 
-    public void clearOtp(String email) {
+    public void clearOTP(String email) {
         otpStorage.remove(email);
     }
 }

@@ -32,7 +32,7 @@ public class OTPController {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) return ResponseEntity.status(404).body("User not found");
 
-        otpService.generateOtp(email);
+        otpService.generateOTP(email);
         return ResponseEntity.ok("OTP sent to email");
     }
 
@@ -41,9 +41,9 @@ public class OTPController {
         String email = body.get("email");
         String otp = body.get("otp");
 
-        if (otpService.validateOtp(email, otp)) {
-            otpService.clearOtp(email);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userRepository.findByEmail(email).get().getUsername());
+        if (otpService.validateOTP(email, otp)) {
+            otpService.clearOTP(email);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userRepository.findByEmail(email).get().getUserName());
             String token = jwtUtil.generateToken(userDetails);
             return ResponseEntity.ok(token);
         }

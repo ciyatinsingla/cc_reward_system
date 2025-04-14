@@ -1,11 +1,13 @@
 package com.lms.ccrp.controller;
 
+import com.lms.ccrp.dto.CustomerDTO;
 import com.lms.ccrp.dto.LoginDTO;
 import com.lms.ccrp.dto.PasswordResetDTO;
 import com.lms.ccrp.dto.UserDTO;
 import com.lms.ccrp.entity.JwtToken;
 import com.lms.ccrp.entity.User;
 import com.lms.ccrp.repository.JwtTokenRepository;
+import com.lms.ccrp.service.CustomerService;
 import com.lms.ccrp.service.JwtService;
 import com.lms.ccrp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +24,10 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
     @Autowired
     private JwtService jwtService;
+
     @Autowired
     private JwtTokenRepository jwtTokenRepository;
 
@@ -32,8 +36,8 @@ public class UserController {
         userService.checkIfUserExistsOrNot(dto);
         User user = userService.createUser(dto);
         try {
-        String token = userService.login(new LoginDTO(dto.getEmail(),dto.getPassword()));
-        return ResponseEntity.ok(Collections.singletonMap("token", token));
+            String token = userService.login(new LoginDTO(dto.getEmail(), dto.getPassword()));
+            return ResponseEntity.ok(Collections.singletonMap("token", token));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
@@ -46,6 +50,15 @@ public class UserController {
             return ResponseEntity.ok(Collections.singletonMap("token", token));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
+        try {
+            userService.logout(token);
+            return ResponseEntity.ok("Logged out successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error logging out: " + e.getMessage());
         }
     }
 
