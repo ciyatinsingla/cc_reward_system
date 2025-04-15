@@ -10,8 +10,8 @@ import com.lms.ccrp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -28,7 +28,7 @@ public class UserService {
 
     public User createUser(UserDTO userDTO) {
         User user = new User();
-        user.setUserName(userDTO.getUserName());
+        user.setUsername(userDTO.getUsername());
         user.setEmail(userDTO.getEmail());
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         user.setRole(userDTO.getRole());
@@ -41,14 +41,7 @@ public class UserService {
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             throw new Exception("Invalid credentials");
         }
-        String jwt = jwtService.generateToken(user);
-
-        JwtToken jwtToken = new JwtToken();
-        jwtToken.setToken(jwt);
-        jwtToken.setUserId(user.getId());
-        jwtToken.setExpiryDate(LocalDateTime.now().plusMinutes(60));
-        jwtTokenRepository.save(jwtToken);
-        return jwt;
+        return jwtService.createToken(user);
     }
 
     public void resetPassword(PasswordResetDTO dto) throws Exception {
@@ -72,6 +65,7 @@ public class UserService {
 
     }
 
+    @Transactional
     public void logout(String token) {
         Optional<JwtToken> jwtToken = jwtTokenRepository.findByToken(token);
         jwtToken.ifPresent(value -> jwtTokenRepository.delete(value));

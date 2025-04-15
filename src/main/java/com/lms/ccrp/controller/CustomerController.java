@@ -32,7 +32,7 @@ public class CustomerController {
     @Autowired
     private JwtTokenRepository tokenRepository;
 
-    @PostMapping("/create/customer")
+    @PostMapping("/create")
     public ResponseEntity<?> createNewCustomer(@RequestBody CustomerDTO dto, @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");

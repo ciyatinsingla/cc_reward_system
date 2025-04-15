@@ -53,9 +53,11 @@ public class UserController {
         }
     }
 
+    @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
         try {
-            userService.logout(token);
+            String authToken = token.replace("Bearer ", "");
+            userService.logout(authToken);
             return ResponseEntity.ok("Logged out successfully.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error logging out: " + e.getMessage());

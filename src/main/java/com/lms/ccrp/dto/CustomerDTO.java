@@ -21,6 +21,10 @@ public class CustomerDTO {
     private Long creditCardNumber;
 
     @NonNull
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date dateOfBirth;
+
+    @NonNull
     private String creditCardType;
 
     @NonNull

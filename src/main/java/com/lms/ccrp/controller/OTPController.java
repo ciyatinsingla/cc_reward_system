@@ -43,7 +43,7 @@ public class OTPController {
 
         if (otpService.validateOTP(email, otp)) {
             otpService.clearOTP(email);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userRepository.findByEmail(email).get().getUserName());
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userRepository.findByEmail(email).get().getUsername());
             String token = jwtUtil.generateToken(userDetails);
             return ResponseEntity.ok(token);
         }

@@ -3,11 +3,13 @@ package com.lms.ccrp.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import com.lms.ccrp.entity.common.Auditable;
 
 import java.util.Date;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "customer_details")
 @Data
@@ -21,6 +23,8 @@ public class Customer extends Auditable {
     private Long customerId;
 
     private String name;
+
+    private Date dateOfBirth;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", referencedColumnName = "id")

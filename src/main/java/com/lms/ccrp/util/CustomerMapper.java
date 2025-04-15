@@ -9,6 +9,7 @@ public class CustomerMapper {
     public static Customer dtoToCustomer(CustomerDTO dto, User user) {
         Customer customer = new Customer();
         customer.setName(dto.getName());
+        customer.setDateOfBirth(dto.getDateOfBirth());
         customer.setCreditCardNumber(dto.getCreditCardNumber());
         customer.setCreditCardType(dto.getCreditCardType());
         customer.setCardIssuanceDate(dto.getCardIssuanceDate());

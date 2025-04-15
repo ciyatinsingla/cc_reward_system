@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Key;
 import java.time.Instant;
@@ -39,9 +40,10 @@ public class JwtService {
         signingKey = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(User user) {
+    @Transactional
+    public String createToken(User user) {
         // Generate token using email, user ID, and role
-        String token = generateToken(user.getEmail(), user.getId(), user.getRole().name());
+        String token = createToken(user.getEmail(), user.getId(), user.getRole().name());
 
         LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(jwtExpirationMinutes);
         jwtTokenRepository.deleteByUserId(user.getId());
@@ -59,7 +61,7 @@ public class JwtService {
     }
 
 
-    private String generateToken(String username, Long userId, String role) {
+    private String createToken(String username, Long userId, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setSubject(username)
@@ -112,11 +114,5 @@ public class JwtService {
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
         final Claims claims = extractAllClaims(token);
         return resolver.apply(claims);
-    }
-
-    @Scheduled(fixedRate = 60000) // 1 hour
-    public void cleanExpiredTokens() {
-        LocalDateTime now = LocalDateTime.now();
-        jwtTokenRepository.deleteByExpiryDateBefore(now);
     }
 }
