@@ -14,4 +14,13 @@ public enum RequestType {
     public String getLabel() {
         return typeOfRequest;
     }
+
+    public static RequestType fromLabel(String label) {
+        for (RequestType requestType : values()) {
+            if (requestType.getLabel().equalsIgnoreCase(label)) {
+                return requestType;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with label " + label);
+    }
 }

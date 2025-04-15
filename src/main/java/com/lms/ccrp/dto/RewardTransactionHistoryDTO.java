@@ -1,6 +1,8 @@
 package com.lms.ccrp.dto;
 
 import com.lms.ccrp.enums.RequestType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import lombok.AllArgsConstructor;
@@ -25,6 +27,7 @@ public class RewardTransactionHistoryDTO {
     private Date dateOfBirth;
 
     @NonNull
+    @Enumerated(EnumType.STRING)
     private RequestType typeOfRequest;
 
     @NonNull

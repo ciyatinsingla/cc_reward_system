@@ -62,10 +62,11 @@ public class RewardTransactionService {
                 dto.setCustomerId(getLongCellValue(row.getCell(0)));
                 dto.setName(getStringCellValue(row.getCell(1)));
                 dto.setDateOfBirth(row.getCell(2).getDateCellValue());
-                dto.setTypeOfRequest(RequestType.valueOf(getStringCellValue(row.getCell(3))));
+                dto.setTypeOfRequest(RequestType.fromLabel(getStringCellValue(row.getCell(3))));
                 dto.setRewardDescription(getStringCellValue(row.getCell(4)));
                 dto.setNumberOfPoints((int) row.getCell(5).getNumericCellValue());
-
+                dto.setRequesterId(getStringCellValue(row.getCell(6)));
+                dto.setTransactionTime(new Date());
                 dtoList.add(dto);
             }
         }
@@ -85,12 +86,11 @@ public class RewardTransactionService {
      * The list of transactions is then saved in bulk using the {@code rewardTransactionRepository}.
      *
      * @param dtoList     A list of {@link RewardTransactionHistoryDTO} containing transaction data to be processed.
-     * @param requesterId The ID of the user (e.g., admin) performing the transaction operation.
      * @throws Exception If any customer referenced in the DTOs is not found in the system.
      */
-    public void performTransactions(List<RewardTransactionHistoryDTO> dtoList, String requesterId) throws Exception {
+    public void performTransactions(List<RewardTransactionHistoryDTO> dtoList) throws Exception {
         List<RewardTransactionHistory> transactions = dtoList.stream().map(dto -> {
-            Customer customer = customerRepository.findByUserId(dto.getCustomerId())
+            Customer customer = customerRepository.findById(Long.valueOf(dto.getCustomerId().toString().trim()))
                     .orElseThrow(() -> new RuntimeException("Customer not found: " + dto.getCustomerId()));
 
             return RewardTransactionHistory.builder()
@@ -101,7 +101,7 @@ public class RewardTransactionService {
                     .rewardDescription(dto.getRewardDescription())
                     .numberOfPoints(dto.getNumberOfPoints())
                     .transactionTime(new Date())
-                    .requesterId(requesterId)
+                    .requesterId(dto.getRequesterId())
                     .build();
         }).toList();
 

@@ -33,7 +33,7 @@ public class RewardTransactionController {
 
             String adminRequesterId = Role.ADMIN.name() + userMap.get(Role.ADMIN.name());
             List<RewardTransactionHistoryDTO> dtoList = rewardTransactionService.parseExcelFile(file);
-            rewardTransactionService.performTransactions(dtoList, adminRequesterId);
+            rewardTransactionService.performTransactions(dtoList);
             return ResponseEntity.ok("Admin transactions from Excel processed successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
@@ -52,7 +52,7 @@ public class RewardTransactionController {
             if (userMap.containsKey(Role.USER.name()) &&
                     StringUtils.equalsAnyIgnoreCase(RequestType.REDEMPTION.name(), dto.getTypeOfRequest().name())) {
                 String userRequesterId = Role.USER.name() + userMap.get(Role.USER.name());
-                rewardTransactionService.performTransactions(List.of(dto), userRequesterId);
+                rewardTransactionService.performTransactions(List.of(dto));
                 return ResponseEntity.ok("User transactions processed successfully.");
             }
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Request type not allowed.");
