@@ -32,16 +32,14 @@ public class RewardTransactionController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Action not allowed");
 
             String adminRequesterId = Role.ADMIN.name() + userMap.get(Role.ADMIN.name());
-            List<RewardTransactionHistoryDTO> dtoList = rewardTransactionService.parseExcelFile(file);
-            rewardTransactionService.performTransactions(dtoList);
+            List<RewardTransactionHistoryDTO> dtoList = rewardTransactionService.parseRTHFromExcelFile(file);
+            rewardTransactionService.performRewardTransactions(dtoList);
             return ResponseEntity.ok("Admin transactions from Excel processed successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
-
-    // User performs transactions
     @PostMapping("/customer/rewardRedemption")
     public ResponseEntity<String> performTransactionsByUser(@RequestBody RewardTransactionHistoryDTO dto, @RequestHeader("Authorization") String authHeader) {
         try {
@@ -52,7 +50,7 @@ public class RewardTransactionController {
             if (userMap.containsKey(Role.USER.name()) &&
                     StringUtils.equalsAnyIgnoreCase(RequestType.REDEMPTION.name(), dto.getTypeOfRequest().name())) {
                 String userRequesterId = Role.USER.name() + userMap.get(Role.USER.name());
-                rewardTransactionService.performTransactions(List.of(dto));
+                rewardTransactionService.performRewardTransactions(List.of(dto));
                 return ResponseEntity.ok("User transactions processed successfully.");
             }
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Request type not allowed.");
@@ -61,11 +59,10 @@ public class RewardTransactionController {
         }
     }
 
-    // Get total points of a user
     @GetMapping("/customer/{customerId}/points")
-    public ResponseEntity<Integer> getUserPoints(@PathVariable Long customerId) {
+    public ResponseEntity<Long> getUserPoints(@PathVariable Long customerId) {
         try {
-            int points = rewardTransactionService.getCustomerPoints(customerId);
+            long points = rewardTransactionService.getCustomerPoints(customerId);
             return ResponseEntity.ok(points);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

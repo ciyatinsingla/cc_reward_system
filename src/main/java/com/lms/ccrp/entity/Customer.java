@@ -33,6 +33,6 @@ public class Customer extends Auditable {
     private Long creditCardNumber;
     private String creditCardType;
     private Date cardIssuanceDate;
-    private int totalPoints;
+    private Long totalPoints;
 
 }

@@ -13,11 +13,10 @@ import java.util.Date;
 @Data
 @Builder
 @Entity
-@Table(name = "reward_transaction_history")
+@Table(name = "source_reward_transactions")
 @NoArgsConstructor
 @AllArgsConstructor
-public class RewardTransactionHistory extends Auditable {
-
+public class SourceRewardTransactions extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,10 +32,15 @@ public class RewardTransactionHistory extends Auditable {
 
     private String rewardDescription;
 
-    private int numberOfPoints;
+    private Long numberOfPoints;
 
     private String requesterId;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date transactionTime;
+
+    private String requestStatus;
+    private String reason;
+
+    private boolean isCompleted;
 }

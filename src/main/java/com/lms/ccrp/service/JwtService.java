@@ -10,7 +10,6 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Service
@@ -115,4 +115,22 @@ public class JwtService {
         final Claims claims = extractAllClaims(token);
         return resolver.apply(claims);
     }
+
+    public Long authenticateAndExtractUserId(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer "))
+            throw new RuntimeException("Missing or malformed Authorization header");
+
+        String token = authHeader.replace("Bearer ", "").trim();
+
+        if (!validateToken(token))
+            throw new RuntimeException("Invalid or expired token");
+
+        Optional<JwtToken> jwtTokenOptional = jwtTokenRepository.findByToken(token);
+        if (jwtTokenOptional.isEmpty() || jwtTokenOptional.get().getExpiryDate().isBefore(LocalDateTime.now()))
+            throw new RuntimeException("Token expired or not found");
+
+        return extractUserId(token);
+    }
+
+
 }

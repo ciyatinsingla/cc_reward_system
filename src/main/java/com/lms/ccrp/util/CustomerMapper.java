@@ -13,7 +13,7 @@ public class CustomerMapper {
         customer.setCreditCardNumber(dto.getCreditCardNumber());
         customer.setCreditCardType(dto.getCreditCardType());
         customer.setCardIssuanceDate(dto.getCardIssuanceDate());
-        customer.setTotalPoints(0);
+        customer.setTotalPoints(0L);
         customer.setUser(user);
         return customer;
     }
