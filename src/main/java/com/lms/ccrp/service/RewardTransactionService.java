@@ -96,7 +96,7 @@ public class RewardTransactionService {
      * @param dtoList A list of {@link RewardTransactionHistoryDTO} containing transaction data to be processed.
      * @throws Exception If any customer referenced in the DTOs is not found in the system.
      */
-    public void performRewardTransactions(List<RewardTransactionHistoryDTO> dtoList) throws Exception {
+    public void performRewardTransactions(List<RewardTransactionHistoryDTO> dtoList, String requesterId) throws Exception {
         List<RewardTransactionHistory> transactions = dtoList.stream().map(dto -> {
             Customer customer = customerRepository.findById(Long.valueOf(dto.getCustomerId().toString().trim()))
                     .orElseThrow(() -> new RuntimeException("Customer not found: " + dto.getCustomerId()));
@@ -109,7 +109,7 @@ public class RewardTransactionService {
                     .rewardDescription(dto.getRewardDescription())
                     .numberOfPoints(dto.getNumberOfPoints())
                     .transactionTime(new Date())
-                    .requesterId(dto.getRequesterId())
+                    .requesterId(requesterId)
                     .build();
         }).toList();
 

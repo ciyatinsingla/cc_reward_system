@@ -33,7 +33,7 @@ public class RewardTransactionHistory extends Auditable {
 
     private String rewardDescription;
 
-    private int numberOfPoints;
+    private Long numberOfPoints;
 
     private String requesterId;
 

@@ -34,9 +34,8 @@ public class RewardTransactionHistoryDTO {
     private String rewardDescription;
 
     @NonNull
-    private Integer numberOfPoints;
+    private Long numberOfPoints;
 
-    @NonNull
     private String requesterId;
 
     @Temporal(TemporalType.TIMESTAMP)

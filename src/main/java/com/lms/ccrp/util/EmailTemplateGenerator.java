@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class EmailTemplateGenerator {
 
-    public String generateEmailTemplateForPointsRedemption(String userName, int points) {
+    public String generateEmailTemplateForPointsRedemption(String userName, long points) {
         String SIGNATURE = "Best Regards,<br>CCRP Team";
         String FOOTER = "You are receiving this email because you have enrolled in our program.";
         return "<!DOCTYPE html>" +
