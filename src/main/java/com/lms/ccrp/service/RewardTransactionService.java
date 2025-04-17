@@ -2,13 +2,15 @@ package com.lms.ccrp.service;
 
 import com.lms.ccrp.dto.RewardTransactionHistoryDTO;
 import com.lms.ccrp.entity.Customer;
+import com.lms.ccrp.entity.RequestTransactions;
 import com.lms.ccrp.entity.RewardTransactionHistory;
-import com.lms.ccrp.entity.SourceRewardTransactions;
 import com.lms.ccrp.enums.RequestType;
+import com.lms.ccrp.enums.Role;
 import com.lms.ccrp.repository.CustomerRepository;
+import com.lms.ccrp.repository.RequestTransactionsRepository;
 import com.lms.ccrp.repository.RewardTransactionRepository;
-import com.lms.ccrp.repository.SourceRewardTransactionsRepository;
 import com.lms.ccrp.repository.UserRepository;
+import com.lms.ccrp.util.EmailTemplateGenerator;
 import com.lms.ccrp.util.RewardTransactionHistoryMapper;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +22,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,8 +36,10 @@ public class RewardTransactionService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final RewardTransactionRepository rewardTransactionRepository;
-    private final SourceRewardTransactionsRepository sourceRewardTransactionsRepository;
+    private final EmailTemplateGenerator emailTemplate;
+    private final RequestTransactionsRepository requestTransactionsRepository;
     private final JwtService jwtService;
+    private static final String APR = "Approved";
 
     /**
      * Parses an Excel file and converts each row (excluding the header) into a {@link RewardTransactionHistoryDTO}.
@@ -97,23 +103,46 @@ public class RewardTransactionService {
      * @throws Exception If any customer referenced in the DTOs is not found in the system.
      */
     public void performRewardTransactions(List<RewardTransactionHistoryDTO> dtoList, String requesterId) throws Exception {
-        List<RewardTransactionHistory> transactions = dtoList.stream().map(dto -> {
-            Customer customer = customerRepository.findById(Long.valueOf(dto.getCustomerId().toString().trim()))
-                    .orElseThrow(() -> new RuntimeException("Customer not found: " + dto.getCustomerId()));
+        List<RewardTransactionHistory> transactions = dtoList.stream()
+                .filter(dto -> filterOutRepetitveEntries(dto))
+                .map(dto -> {
+                    Customer customer = customerRepository.findById(dto.getCustomerId())
+                            .orElseThrow(() -> new RuntimeException("Customer not found: " + dto.getCustomerId()));
 
-            return RewardTransactionHistory.builder()
-                    .customerId(dto.getCustomerId())
-                    .name(dto.getName())
-                    .dateOfBirth(dto.getDateOfBirth())
-                    .typeOfRequest(dto.getTypeOfRequest())
-                    .rewardDescription(dto.getRewardDescription())
-                    .numberOfPoints(dto.getNumberOfPoints())
-                    .transactionTime(new Date())
-                    .requesterId(requesterId)
-                    .build();
-        }).toList();
+                    return RewardTransactionHistory.builder()
+                            .customerId(dto.getCustomerId())
+                            .name(dto.getName().trim())
+                            .dateOfBirth(dto.getDateOfBirth())
+                            .typeOfRequest(dto.getTypeOfRequest())
+                            .rewardDescription(dto.getRewardDescription().trim())
+                            .numberOfPoints(dto.getNumberOfPoints())
+                            .transactionTime(new Date())
+                            .requesterId(requesterId.trim())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
 
         rewardTransactionRepository.saveAll(transactions);
+
+        requestEmailPORTemplateCreation(requesterId, transactions.get(0));
+    }
+
+    private boolean filterOutRepetitveEntries(RewardTransactionHistoryDTO dto) {
+        List<RewardTransactionHistory> existing = rewardTransactionRepository.findByAllFields(
+                dto.getCustomerId(),
+                dto.getName().trim(),
+                dto.getTypeOfRequest().toString().trim(),
+                dto.getRewardDescription().trim(),
+                dto.getNumberOfPoints(),
+                dto.getRequesterId().trim());
+
+        // Debug log
+        if (!existing.isEmpty()) {
+            System.out.println("Skipping existing record for customerId: " + dto.getCustomerId());
+        }
+
+        return existing.isEmpty(); // Keep only new records
     }
 
     /**
@@ -176,6 +205,22 @@ public class RewardTransactionService {
     }
 
     /**
+     * Triggers the creation of a POI-based email template for a given reward transaction,
+     * only if the requester is identified as a user.
+     *
+     * <p>This method checks whether the requester ID starts with the {@code Role.USER} prefix.
+     * If the check passes, it delegates the creation of the email template to the
+     * {@code emailTemplate.createPOIRTemplate()} method using the provided transaction details.</p>
+     *
+     * @param requesterId the ID of the user or system initiating the request; expected to be prefixed with role information.
+     * @param transaction the reward transaction data used to populate the email template.
+     */
+    private void requestEmailPORTemplateCreation(String requesterId, RewardTransactionHistory transaction) throws ParseException {
+        if (requesterId.startsWith(Role.USER.toString()))
+            emailTemplate.createPOIRTemplate(transaction);
+    }
+
+    /**
      * Safely extracts a trimmed string value from an Excel cell.
      *
      * @param cell The Excel {@link Cell} from which to extract the value.
@@ -197,7 +242,7 @@ public class RewardTransactionService {
 
     /**
      * Reads reward transaction data from the first sheet of the given Excel file
-     * and maps each row (after the header) to a {@link SourceRewardTransactions} object.
+     * and maps each row (after the header) to a {@link RequestTransactions} object.
      * <p>
      * The expected columns in each row are:
      * <ol>
@@ -215,14 +260,14 @@ public class RewardTransactionService {
      * at the moment of reading.
      *
      * @param excelFilePath the file system path to the .xlsx file to read
-     * @return a {@link List} of {@link SourceRewardTransactions} objects populated from the Excel rows;
+     * @return a {@link List} of {@link RequestTransactions} objects populated from the Excel rows;
      * returns an empty list if no data rows are found
      * @throws RuntimeException if an I/O error occurs while opening the file,
      *                          if the file format is invalid, or if any other exception
      *                          arises during reading/mapping
      */
-    public List<SourceRewardTransactions> parseSRTFromExcelFile(String excelFilePath) {
-        List<SourceRewardTransactions> transactions = new ArrayList<>();
+    public List<RequestTransactions> parseSRTFromExcelFile(String excelFilePath) {
+        List<RequestTransactions> transactions = new ArrayList<>();
 
         try (FileInputStream fis = new FileInputStream(new File(excelFilePath));
              Workbook workbook = new XSSFWorkbook(fis)) {
@@ -236,7 +281,7 @@ public class RewardTransactionService {
                     continue;
                 }
 
-                SourceRewardTransactions transaction = new SourceRewardTransactions();
+                RequestTransactions transaction = new RequestTransactions();
                 transaction.setCustomerId(getLongCellValue(row.getCell(0)));
                 transaction.setName(getStringCellValue(row.getCell(1)));
                 transaction.setDateOfBirth(row.getCell(2).getDateCellValue());
@@ -251,42 +296,49 @@ public class RewardTransactionService {
                 transactions.add(transaction);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error occured while parcel Source Transactions.");
+            throw new RuntimeException("Error occurred while parcel Source Transactions.");
         }
         return transactions;
     }
 
     @Transactional
-    public void performSourceValidatedTransactions(@NonNull List<SourceRewardTransactions> sourceRewardTransactionsList) throws Exception {
-        for (SourceRewardTransactions sourceRewardTransaction : sourceRewardTransactionsList) {
-            Customer customer = customerRepository.findById(sourceRewardTransaction.getCustomerId())
-                    .orElseThrow(() -> new RuntimeException("Customer not found: " + sourceRewardTransaction.getCustomerId()));
+    public void requestTransactions(@NonNull List<RequestTransactions> requestTransactionsList) throws Exception {
+        for (RequestTransactions request : requestTransactionsList) {
+            List<RequestTransactions> existingRequests = requestTransactionsRepository.findByAllFields(request.getCustomerId(), request.getName(), request.getTypeOfRequest().toString(), request.getRewardDescription(), request.getNumberOfPoints(), request.getRequesterId(), request.getRequestStatus(), request.getReason());
+            if (!existingRequests.isEmpty()) continue;
+            Customer customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found: " + request.getCustomerId()));
+            boolean isSuccess = request.getRequestStatus().trim().equalsIgnoreCase(APR);
             Long availablePoints = customer.getTotalPoints();
-            Long transactionPoints = Math.abs(sourceRewardTransaction.getNumberOfPoints());
-            if (sourceRewardTransaction.getTypeOfRequest() != RequestType.EARNED) {
+            Long transactionPoints = Math.abs(request.getNumberOfPoints());
+            if (request.getTypeOfRequest() != RequestType.EARNED) {
                 if (availablePoints < transactionPoints)
                     throw new RuntimeException("");
-                customer.setTotalPoints(availablePoints - transactionPoints);
-                sourceRewardTransaction.setNumberOfPoints(-transactionPoints);
+                if (isSuccess) customer.setTotalPoints(availablePoints - transactionPoints);
+                request.setNumberOfPoints(-transactionPoints);
             } else {
-                customer.setTotalPoints(availablePoints + transactionPoints);
-                sourceRewardTransaction.setNumberOfPoints(transactionPoints);
+                if (isSuccess) customer.setTotalPoints(availablePoints + transactionPoints);
+                request.setNumberOfPoints(transactionPoints);
             }
 
-            SourceRewardTransactions finalTransaction = SourceRewardTransactions.builder()
-                    .customerId(sourceRewardTransaction.getCustomerId())
-                    .name(sourceRewardTransaction.getName())
-                    .dateOfBirth(sourceRewardTransaction.getDateOfBirth())
-                    .typeOfRequest(sourceRewardTransaction.getTypeOfRequest())
-                    .rewardDescription(sourceRewardTransaction.getRewardDescription())
-                    .numberOfPoints(sourceRewardTransaction.getNumberOfPoints())
+            RequestTransactions finalTransaction = RequestTransactions.builder()
+                    .customerId(request.getCustomerId())
+                    .name(request.getName())
+                    .dateOfBirth(request.getDateOfBirth())
+                    .typeOfRequest(request.getTypeOfRequest())
+                    .rewardDescription(request.getRewardDescription())
+                    .numberOfPoints(request.getNumberOfPoints())
                     .transactionTime(new Date())
-                    .requesterId(sourceRewardTransaction.getRequesterId())
-                    .isCompleted(true)
+                    .requesterId(request.getRequesterId())
+                    .requestStatus(request.getRequestStatus())
+                    .reason(request.getReason())
                     .build();
 
-            customerRepository.save(customer);
-            sourceRewardTransactionsRepository.save(finalTransaction);
+            if (isSuccess)
+                finalTransaction.setCompleted();
+
+            if (isSuccess) customerRepository.save(customer);
+            requestTransactionsRepository.save(finalTransaction);
         }
     }
 }

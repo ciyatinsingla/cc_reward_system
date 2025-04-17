@@ -38,15 +38,19 @@ public class UserService {
     public String login(LoginDTO loginDTO) throws Exception {
         User user = userRepository.findByEmail(loginDTO.getEmail())
                 .orElseThrow(() -> new Exception("User not found"));
-        if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword()))
             throw new Exception("Invalid credentials");
-        }
         return jwtService.createToken(user);
     }
 
-    public void resetPassword(PasswordResetDTO dto) throws Exception {
-        User user = userRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new Exception("User not found"));
+    public boolean matchPassword(PasswordResetDTO dto, User user) throws Exception {
+        if (user == null)
+            user = userRepository.findByEmail(dto.getEmail())
+                    .orElseThrow(() -> new Exception("User not found"));
+        return passwordEncoder.matches(dto.getNewPassword(), user.getPassword());
+    }
+
+    public void resetPassword(PasswordResetDTO dto, User user) throws Exception {
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         userRepository.save(user);
     }

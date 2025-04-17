@@ -33,7 +33,7 @@ public class JwtService {
 
     private Key signingKey;
 
-    private static final long jwtExpirationMinutes = 30;
+    private static final long jwtExpirationMinutes = 180;
 
     @PostConstruct
     public void init() {

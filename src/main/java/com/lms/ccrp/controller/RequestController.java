@@ -1,6 +1,6 @@
 package com.lms.ccrp.controller;
 
-import com.lms.ccrp.entity.SourceRewardTransactions;
+import com.lms.ccrp.entity.RequestTransactions;
 import com.lms.ccrp.enums.Role;
 import com.lms.ccrp.service.JwtService;
 import com.lms.ccrp.service.RewardTransactionService;
@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/source-validator")
-public class SourceValidationController {
+public class RequestController {
 
     @Autowired
     private JwtService jwtService;
@@ -27,7 +27,7 @@ public class SourceValidationController {
     @Autowired
     private RewardTransactionService service;
 
-    @Value("${source.file.path:D:/SourceTransactions/SourceRewardTransactionsFile.xlsx}")
+    @Value("${source.file.path}")
     private String excelFile;
 
 
@@ -37,8 +37,8 @@ public class SourceValidationController {
         if (userService.fetchUser(userId).getRole() != Role.ADMIN)
             throw new RuntimeException("Action not allowed");
 
-        List<SourceRewardTransactions> sourceRecords = service.parseSRTFromExcelFile(excelFile);
-        service.performSourceValidatedTransactions(sourceRecords);
+        List<RequestTransactions> sourceRecords = service.parseSRTFromExcelFile(excelFile);
+        service.requestTransactions(sourceRecords);
     }
 
 }

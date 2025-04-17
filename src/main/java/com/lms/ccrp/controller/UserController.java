@@ -6,6 +6,7 @@ import com.lms.ccrp.dto.UserDTO;
 import com.lms.ccrp.entity.User;
 import com.lms.ccrp.repository.JwtTokenRepository;
 import com.lms.ccrp.service.JwtService;
+import com.lms.ccrp.service.OTPService;
 import com.lms.ccrp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,9 @@ public class UserController {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private OTPService otpService;
 
     @Autowired
     private JwtTokenRepository jwtTokenRepository;
@@ -57,17 +61,6 @@ public class UserController {
             return ResponseEntity.ok("Logged out successfully.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error logging out: " + e.getMessage());
-        }
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody PasswordResetDTO dto, @RequestHeader("Authorization") String authHeader) {
-        try {
-            Long userId = jwtService.authenticateAndExtractUserId(authHeader);
-            userService.resetPassword(dto);
-            return ResponseEntity.ok("Password updated successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }

@@ -1,9 +1,29 @@
 package com.lms.ccrp.util;
 
+import com.lms.ccrp.entity.RewardTransactionHistory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+@Slf4j
 @Component
 public class EmailTemplateGenerator {
+
+    @Value("${source.file.path}")
+    private String emailFile;
+
+    private static final String APR = "Approved";
 
     public String generateEmailTemplateForPointsRedemption(String userName, long points) {
         String SIGNATURE = "Best Regards,<br>CCRP Team";
@@ -37,5 +57,30 @@ public class EmailTemplateGenerator {
                 "</html>";
     }
 
+    public void createPOIRTemplate(RewardTransactionHistory transaction) throws ParseException {
+        try (FileInputStream fis = new FileInputStream(new File(emailFile));
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            Row row = sheet.createRow(sheet.getLastRowNum() + 1);
+
+            row.createCell(0).setCellValue(transaction.getCustomerId());
+            row.createCell(1).setCellValue(transaction.getName());
+            row.createCell(2).setCellValue(new SimpleDateFormat("dd-MM-yyyy").parse(transaction.getDateOfBirth().toString()));
+            row.createCell(3).setCellValue(transaction.getTypeOfRequest().name().substring(0, 1).toUpperCase() + transaction.getTypeOfRequest().name().substring(1).toLowerCase());
+            row.createCell(4).setCellValue(transaction.getRewardDescription());
+            row.createCell(5).setCellValue(-transaction.getNumberOfPoints());
+            row.createCell(6).setCellValue(transaction.getRequesterId());
+            row.createCell(7).setCellValue(APR);
+            row.createCell(8).setCellValue("product available");
+
+            log.debug("Email template logged");
+            try (FileOutputStream fos = new FileOutputStream(new File(emailFile))) {
+                workbook.write(fos);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Servers are down");
+        }
+    }
 
 }

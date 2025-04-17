@@ -16,7 +16,7 @@ import java.util.Date;
 @Table(name = "source_reward_transactions")
 @NoArgsConstructor
 @AllArgsConstructor
-public class SourceRewardTransactions extends Auditable {
+public class RequestTransactions extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -43,4 +43,8 @@ public class SourceRewardTransactions extends Auditable {
     private String reason;
 
     private boolean isCompleted;
+
+    public void setCompleted() {
+        this.isCompleted = true;
+    }
 }

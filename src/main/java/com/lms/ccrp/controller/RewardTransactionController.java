@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,9 +57,9 @@ public class RewardTransactionController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Request type not allowed.");
 
             Long userId = userMap.get(Role.USER.name());
-            String adminRequesterId = Role.ADMIN.name() + userId;
+            String userRequesterId = Role.USER.name() + userId;
             transactionHistoryDTO.setRequesterId(Role.USER.name() + userId);
-            rewardTransactionService.performRewardTransactions(List.of(transactionHistoryDTO), adminRequesterId);
+            rewardTransactionService.performRewardTransactions(List.of(transactionHistoryDTO), userRequesterId);
             log.info(emailSenderService.sendRedemptionEmailToUser(userId, transactionHistoryDTO));
             return ResponseEntity.ok("User transaction processed successfully.");
 

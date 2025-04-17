@@ -7,18 +7,21 @@ spring:
         username: root
         password: password
     jpa:
+        show-sql: true
         hibernate:
             ddl-auto: update
             naming:
                 physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
                 implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
         properties:
+            hibernate:
+                format_sql: true
             dialect: org.hibernate.dialect.MySQL8Dialect
     mail:
         host: smtp.gmail.com
         port: 587
-        username: googleEmailId
-        password: googlePassword
+        username: ratnenddr.girri@gmail.com
+        password: frfejvjykjjmsudl
         properties:
             mail:
                 smtp:
@@ -42,3 +45,8 @@ logging:
         org:
             hibernate: warn
             hibernate.orm.connections.pooling: warn
+
+source:
+    file:
+        path: D:/SourceTransactions/SourceRewardTransactionsFile.xlsx
+
