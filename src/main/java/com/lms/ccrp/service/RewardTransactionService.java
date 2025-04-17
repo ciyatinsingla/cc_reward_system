@@ -72,7 +72,7 @@ public class RewardTransactionService {
                 dto.setDateOfBirth(row.getCell(2).getDateCellValue());
                 dto.setTypeOfRequest(RequestType.fromLabel(getStringCellValue(row.getCell(3))));
                 dto.setRewardDescription(getStringCellValue(row.getCell(4)));
-                dto.setNumberOfPoints((int) row.getCell(5).getNumericCellValue());
+                dto.setNumberOfPoints((long) row.getCell(5).getNumericCellValue());
                 dto.setRequesterId(getStringCellValue(row.getCell(6)));
                 dto.setTransactionTime(new Date());
                 dtoList.add(dto);
