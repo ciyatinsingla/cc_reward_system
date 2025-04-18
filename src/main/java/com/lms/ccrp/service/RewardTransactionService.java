@@ -5,12 +5,10 @@ import com.lms.ccrp.entity.Customer;
 import com.lms.ccrp.entity.RequestTransactions;
 import com.lms.ccrp.entity.RewardTransactionHistory;
 import com.lms.ccrp.enums.RequestType;
-import com.lms.ccrp.enums.Role;
 import com.lms.ccrp.repository.CustomerRepository;
 import com.lms.ccrp.repository.RequestTransactionsRepository;
 import com.lms.ccrp.repository.RewardTransactionRepository;
 import com.lms.ccrp.repository.UserRepository;
-import com.lms.ccrp.util.EmailTemplateGenerator;
 import com.lms.ccrp.util.RewardTransactionHistoryMapper;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -36,7 +33,6 @@ public class RewardTransactionService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final RewardTransactionRepository rewardTransactionRepository;
-    private final EmailTemplateGenerator emailTemplate;
     private final RequestTransactionsRepository requestTransactionsRepository;
     private final JwtService jwtService;
     private static final String APR = "Approved";
@@ -102,9 +98,8 @@ public class RewardTransactionService {
      * @param dtoList A list of {@link RewardTransactionHistoryDTO} containing transaction data to be processed.
      * @throws Exception If any customer referenced in the DTOs is not found in the system.
      */
-    public void performRewardTransactions(List<RewardTransactionHistoryDTO> dtoList, String requesterId) throws Exception {
+    public void performRewardTransactions(List<RewardTransactionHistoryDTO> dtoList) throws Exception {
         List<RewardTransactionHistory> transactions = dtoList.stream()
-                .filter(dto -> filterOutRepetitveEntries(dto))
                 .map(dto -> {
                     Customer customer = customerRepository.findById(dto.getCustomerId())
                             .orElseThrow(() -> new RuntimeException("Customer not found: " + dto.getCustomerId()));
@@ -117,32 +112,12 @@ public class RewardTransactionService {
                             .rewardDescription(dto.getRewardDescription().trim())
                             .numberOfPoints(dto.getNumberOfPoints())
                             .transactionTime(new Date())
-                            .requesterId(requesterId.trim())
+                            .requesterId(dto.getRequesterId())
                             .build();
                 })
                 .collect(Collectors.toList());
 
-
         rewardTransactionRepository.saveAll(transactions);
-
-        requestEmailPORTemplateCreation(requesterId, transactions.get(0));
-    }
-
-    private boolean filterOutRepetitveEntries(RewardTransactionHistoryDTO dto) {
-        List<RewardTransactionHistory> existing = rewardTransactionRepository.findByAllFields(
-                dto.getCustomerId(),
-                dto.getName().trim(),
-                dto.getTypeOfRequest().toString().trim(),
-                dto.getRewardDescription().trim(),
-                dto.getNumberOfPoints(),
-                dto.getRequesterId().trim());
-
-        // Debug log
-        if (!existing.isEmpty()) {
-            System.out.println("Skipping existing record for customerId: " + dto.getCustomerId());
-        }
-
-        return existing.isEmpty(); // Keep only new records
     }
 
     /**
@@ -202,22 +177,6 @@ public class RewardTransactionService {
             dtoList.add(RewardTransactionHistoryMapper.entityToRewardTransactionHistoryDTO(rewardTransactionHistory));
         }
         return dtoList;
-    }
-
-    /**
-     * Triggers the creation of a POI-based email template for a given reward transaction,
-     * only if the requester is identified as a user.
-     *
-     * <p>This method checks whether the requester ID starts with the {@code Role.USER} prefix.
-     * If the check passes, it delegates the creation of the email template to the
-     * {@code emailTemplate.createPOIRTemplate()} method using the provided transaction details.</p>
-     *
-     * @param requesterId the ID of the user or system initiating the request; expected to be prefixed with role information.
-     * @param transaction the reward transaction data used to populate the email template.
-     */
-    private void requestEmailPORTemplateCreation(String requesterId, RewardTransactionHistory transaction) throws ParseException {
-        if (requesterId.startsWith(Role.USER.toString()))
-            emailTemplate.createPOIRTemplate(transaction);
     }
 
     /**
@@ -304,8 +263,6 @@ public class RewardTransactionService {
     @Transactional
     public void requestTransactions(@NonNull List<RequestTransactions> requestTransactionsList) throws Exception {
         for (RequestTransactions request : requestTransactionsList) {
-            List<RequestTransactions> existingRequests = requestTransactionsRepository.findByAllFields(request.getCustomerId(), request.getName(), request.getTypeOfRequest().toString(), request.getRewardDescription(), request.getNumberOfPoints(), request.getRequesterId(), request.getRequestStatus(), request.getReason());
-            if (!existingRequests.isEmpty()) continue;
             Customer customer = customerRepository.findById(request.getCustomerId())
                     .orElseThrow(() -> new RuntimeException("Customer not found: " + request.getCustomerId()));
             boolean isSuccess = request.getRequestStatus().trim().equalsIgnoreCase(APR);

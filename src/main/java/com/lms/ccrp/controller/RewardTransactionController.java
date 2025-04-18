@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,10 +35,8 @@ public class RewardTransactionController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
             if (!userMap.containsKey(Role.ADMIN.name()))
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Action not allowed");
-
-            String adminRequesterId = Role.ADMIN.name() + userMap.get(Role.ADMIN.name());
             List<RewardTransactionHistoryDTO> dtoList = rewardTransactionService.parseRTHFromExcelFile(file);
-            rewardTransactionService.performRewardTransactions(dtoList, adminRequesterId);
+            rewardTransactionService.performRewardTransactions(dtoList);
             return ResponseEntity.ok("Admin transactions from Excel processed successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
@@ -59,7 +56,7 @@ public class RewardTransactionController {
             Long userId = userMap.get(Role.USER.name());
             String userRequesterId = Role.USER.name() + userId;
             transactionHistoryDTO.setRequesterId(Role.USER.name() + userId);
-            rewardTransactionService.performRewardTransactions(List.of(transactionHistoryDTO), userRequesterId);
+            rewardTransactionService.performRewardTransactions(List.of(transactionHistoryDTO));
             log.info(emailSenderService.sendRedemptionEmailToUser(userId, transactionHistoryDTO));
             return ResponseEntity.ok("User transaction processed successfully.");
 
