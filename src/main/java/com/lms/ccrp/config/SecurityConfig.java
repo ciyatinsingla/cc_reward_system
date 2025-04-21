@@ -24,7 +24,7 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final JwtService jwtService;
 
-    private static final String[] PUBLIC_URLS = {"/user/register", "/user/login", "/otp/**"};
+    private static final String[] PUBLIC_URLS = {"/**"};
 
 
     @Bean

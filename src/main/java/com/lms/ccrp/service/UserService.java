@@ -3,11 +3,12 @@ package com.lms.ccrp.service;
 import com.lms.ccrp.dto.*;
 import com.lms.ccrp.entity.Customer;
 import com.lms.ccrp.entity.JwtToken;
-import com.lms.ccrp.entity.RequestTransactions;
+import com.lms.ccrp.entity.SourceTransactions;
 import com.lms.ccrp.entity.User;
+import com.lms.ccrp.enums.Role;
 import com.lms.ccrp.repository.CustomerRepository;
 import com.lms.ccrp.repository.JwtTokenRepository;
-import com.lms.ccrp.repository.RequestTransactionsRepository;
+import com.lms.ccrp.repository.SourceTransactionsRepository;
 import com.lms.ccrp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -32,7 +35,7 @@ public class UserService {
     @Autowired
     private JwtService jwtService;
     @Autowired
-    private RequestTransactionsRepository requestTransactionsRepository;
+    private SourceTransactionsRepository sourceTransactionsRepository;
 
     public User createUser(UserDTO userDTO) {
         User user = new User();
@@ -94,20 +97,9 @@ public class UserService {
             udDTO.setName(customer.getName());
             udDTO.setPoints(customer.getTotalPoints());
             List<RecentActivityDTO> raDTOList = new ArrayList<>();
-            List<RequestTransactions> rtList = requestTransactionsRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
-            for (RequestTransactions rt : rtList) {
-                RecentActivityDTO dto = new RecentActivityDTO();
-
-                String requestType = switch (rt.getTypeOfRequest()) {
-                    case EARNED -> "Earned";
-                    case EXPIRED -> "Expired";
-                    default -> "Redeemed";
-                };
-
-                dto.setRequestType(requestType);
-                dto.setPointsUsed(Math.abs(rt.getNumberOfPoints()));
-                dto.setRewardDescription(rt.getRewardDescription());
-                dto.setRequestDate(rt.getTransactionTime());
+            List<SourceTransactions> rtList = sourceTransactionsRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
+            for (SourceTransactions rt : rtList) {
+                RecentActivityDTO dto = fetchRecentActivityDTO(rt);
                 raDTOList.add(dto);
             }
             udDTO.setRecentActivity(raDTOList);
@@ -115,4 +107,84 @@ public class UserService {
         }
         throw new RuntimeException("Session not valid.");
     }
+
+    /**
+     * Fetches the admin dashboard data for a user authenticated by the given JWT token.
+     * <p>
+     * This method validates the provided token, verifies the user role as ADMIN,
+     * and compiles an overview of customer activity including:
+     * <ul>
+     *   <li>List of all active customers</li>
+     *   <li>Total points awarded to customers till date</li>
+     *   <li>Recent transaction activities for each customer</li>
+     * </ul>
+     * The compiled data is returned as an {@link AdminDashboardDTO} object.
+     *
+     * @param token the JWT token used to authenticate the admin user
+     * @return an {@link AdminDashboardDTO} containing customer statistics and activity details
+     * @throws Exception if the token is invalid, expired, or if the user is not found
+     *                   or if the user is not authorized as an admin
+     */
+    public AdminDashboardDTO fetchAdminDashboard(String token) throws Exception {
+        Optional<JwtToken> jwtToken = jwtTokenRepository.findByToken(token);
+        if (jwtToken.isEmpty())
+            throw new RuntimeException("Token Invalid or Expired");
+        User user = userRepository.findById(jwtToken.get().getUserId())
+                .orElseThrow(() -> new Exception("User not found"));
+        if (!user.getRole().equals(Role.ADMIN))
+            throw new RuntimeException("Action not allowed");
+
+        long tillDatePointsAwarded = 0;
+        List<PointsManagementDTO> allCustomersDTOList = new ArrayList<>();
+        List<Customer> allCustomers = customerRepository.findAllActiveCustomerIds();
+        Map<Long, String> idEmailMap = allCustomers.stream()
+                .collect(Collectors.toMap(
+                        Customer::getCustomerId,
+                        customer -> customer.getUser().getEmail()
+                ));
+
+        for (Customer customer : allCustomers) {
+            tillDatePointsAwarded += customer.getTotalPoints();
+            PointsManagementDTO pmDTO = PointsManagementDTO
+                    .builder()
+                    .customerId(customer.getCustomerId())
+                    .name(customer.getName())
+                    .email(idEmailMap.get(customer.getCustomerId()))
+                    .points(customer.getTotalPoints())
+                    .build();
+
+            List<RecentActivityDTO> recentActivityList = new ArrayList<>();
+            List<SourceTransactions> rtList = sourceTransactionsRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
+            for (SourceTransactions rt : rtList)
+                recentActivityList.add(fetchRecentActivityDTO(rt));
+            pmDTO.setRecentActivity(recentActivityList);
+            allCustomersDTOList.add(pmDTO);
+        }
+
+        return AdminDashboardDTO.builder()
+                .allCustomersDTOList(allCustomersDTOList)
+                .activeUsers(allCustomersDTOList.size())
+                .totalPointsAwarded(tillDatePointsAwarded)
+                .build();
+    }
+
+    /**
+     * Fetches the recent activity details from the given request transaction.
+     *
+     * @param sourceTransactions the {@link SourceTransactions} object containing details of the request transaction.
+     * @return object {@link RecentActivityDTO} object containing the transformed data.
+     */
+    private RecentActivityDTO fetchRecentActivityDTO(SourceTransactions sourceTransactions) {
+        return RecentActivityDTO.builder()
+                .requestType(switch (sourceTransactions.getTypeOfRequest()) {
+                    case EARNED -> "Earned";
+                    case EXPIRED -> "Expired";
+                    default -> "Redeemed";
+                })
+                .pointsUsed(Math.abs(sourceTransactions.getNumberOfPoints()))
+                .rewardDescription(sourceTransactions.getRewardDescription() != null ? sourceTransactions.getRewardDescription() : "No Description")
+                .requestDate(sourceTransactions.getTransactionTime())
+                .build();
+    }
+
 }

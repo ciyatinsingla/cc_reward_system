@@ -1,7 +1,8 @@
 package com.lms.ccrp.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lms.ccrp.entity.common.Auditable;
-import com.lms.ccrp.enums.RequestType;
+import com.lms.ccrp.enums.RewardRequestType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,10 +14,11 @@ import java.util.Date;
 @Data
 @Builder
 @Entity
-@Table(name = "source_reward_transactions")
+@Table(name = "reward_history")
 @NoArgsConstructor
 @AllArgsConstructor
-public class RequestTransactions extends Auditable {
+public class RewardHistory extends Auditable {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,10 +27,12 @@ public class RequestTransactions extends Auditable {
 
     private String name;
 
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @Temporal(TemporalType.DATE)
     private Date dateOfBirth;
 
     @Enumerated(EnumType.STRING)
-    private RequestType typeOfRequest;
+    private RewardRequestType typeOfRequest;
 
     private String rewardDescription;
 
@@ -38,13 +42,4 @@ public class RequestTransactions extends Auditable {
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date transactionTime;
-
-    private String requestStatus;
-    private String reason;
-
-    private boolean isCompleted;
-
-    public void setCompleted() {
-        this.isCompleted = true;
-    }
 }

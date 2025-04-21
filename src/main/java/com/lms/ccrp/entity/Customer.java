@@ -1,5 +1,6 @@
 package com.lms.ccrp.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,6 +25,10 @@ public class Customer extends Auditable {
 
     private String name;
 
+    private boolean isActive;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @Temporal(TemporalType.DATE)
     private Date dateOfBirth;
 
     @OneToOne(cascade = CascadeType.ALL)

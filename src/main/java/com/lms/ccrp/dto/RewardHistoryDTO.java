@@ -1,6 +1,7 @@
 package com.lms.ccrp.dto;
 
-import com.lms.ccrp.enums.RequestType;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.lms.ccrp.enums.RewardRequestType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Temporal;
@@ -15,7 +16,7 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RewardTransactionHistoryDTO {
+public class RewardHistoryDTO {
 
     @NonNull
     private Long customerId;
@@ -23,12 +24,13 @@ public class RewardTransactionHistoryDTO {
     @NonNull
     private String name;
 
-    @NonNull
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @Temporal(TemporalType.DATE)
     private Date dateOfBirth;
 
     @NonNull
     @Enumerated(EnumType.STRING)
-    private RequestType typeOfRequest;
+    private RewardRequestType typeOfRequest;
 
     @NonNull
     private String rewardDescription;

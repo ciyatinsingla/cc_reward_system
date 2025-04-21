@@ -1,16 +1,16 @@
 package com.lms.ccrp.util;
 
-import com.lms.ccrp.dto.RewardTransactionHistoryDTO;
-import com.lms.ccrp.entity.RewardTransactionHistory;
+import com.lms.ccrp.dto.RewardHistoryDTO;
+import com.lms.ccrp.entity.RewardHistory;
 
 public class RewardTransactionHistoryMapper {
 
-    public static RewardTransactionHistoryDTO entityToRewardTransactionHistoryDTO(RewardTransactionHistory entity) {
+    public static RewardHistoryDTO entityToRewardTransactionHistoryDTO(RewardHistory entity) {
         if (entity == null) {
             return null;
         }
 
-        return new RewardTransactionHistoryDTO(
+        return new RewardHistoryDTO(
                 entity.getCustomerId(),
                 entity.getName(),
                 entity.getDateOfBirth(),
@@ -22,12 +22,12 @@ public class RewardTransactionHistoryMapper {
         );
     }
 
-    public static RewardTransactionHistory dtoToRewardTransactionHistory(RewardTransactionHistoryDTO dto) {
+    public static RewardHistory dtoToRewardTransactionHistory(RewardHistoryDTO dto) {
         if (dto == null) {
             return null;
         }
 
-        return RewardTransactionHistory.builder()
+        return RewardHistory.builder()
                 .customerId(dto.getCustomerId())
                 .name(dto.getName())
                 .dateOfBirth(dto.getDateOfBirth())

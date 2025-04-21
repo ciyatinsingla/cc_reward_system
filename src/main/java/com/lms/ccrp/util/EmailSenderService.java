@@ -1,6 +1,6 @@
 package com.lms.ccrp.util;
 
-import com.lms.ccrp.dto.RewardTransactionHistoryDTO;
+import com.lms.ccrp.dto.RewardHistoryDTO;
 import com.lms.ccrp.entity.Customer;
 import com.lms.ccrp.entity.User;
 import com.lms.ccrp.repository.CustomerRepository;
@@ -31,7 +31,7 @@ public class EmailSenderService {
     @Value("${spring.mail.username}")
     private String emailUsername;
 
-    public String sendRedemptionEmailToUser(Long userId, RewardTransactionHistoryDTO transactionHistoryDTO) {
+    public String sendRedemptionEmailToUser(Long userId, RewardHistoryDTO transactionHistoryDTO) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User doesn't exist"));
         Customer customer = customerRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Customer doesn't exist"));
         Long points = transactionHistoryDTO.getNumberOfPoints();
@@ -49,7 +49,7 @@ public class EmailSenderService {
 
             mailSender.send(message);
             return "Email sent successfully!";
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             return "Failed to send email: " + e.getMessage();
         }
     }

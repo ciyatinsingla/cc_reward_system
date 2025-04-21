@@ -1,10 +1,11 @@
 package com.lms.ccrp.dto;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.Date;
 
+@Builder
 @Data
 public class RecentActivityDTO {
     private String requestType;

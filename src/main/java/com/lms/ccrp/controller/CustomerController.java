@@ -54,4 +54,26 @@ public class CustomerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
+
+//    @PostMapping("/redeem")
+//    public ResponseEntity<String> performTransactionsByUser(@RequestBody RewardTransactionHistoryDTO transactionHistoryDTO, @RequestHeader("Authorization") String authHeader) {
+//        try {
+//            Map<String, Long> userMap = rewardTransactionService.getRequesterId(authHeader);
+//            if (MapUtils.isEmpty(userMap))
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+//
+//            if (!(userMap.containsKey(Role.USER.name()) && StringUtils.equalsAnyIgnoreCase(RequestType.REDEMPTION.name(), transactionHistoryDTO.getTypeOfRequest().name())))
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Request type not allowed.");
+//
+//            Long userId = userMap.get(Role.USER.name());
+//            String userRequesterId = Role.USER.name() + userId;
+//            transactionHistoryDTO.setRequesterId(Role.USER.name() + userId);
+//            rewardTransactionService.performRewardTransactions(List.of(transactionHistoryDTO));
+//            log.info(emailSenderService.sendRedemptionEmailToUser(userId, transactionHistoryDTO));
+//            return ResponseEntity.ok("User transaction processed successfully.");
+//
+//        } catch (Exception e) {
+//            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+//        }
+//    }
 }

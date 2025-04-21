@@ -1,12 +1,14 @@
 package com.lms.ccrp.controller;
 
 import com.lms.ccrp.dto.LoginDTO;
+import com.lms.ccrp.dto.PasswordResetDTO;
 import com.lms.ccrp.dto.UserDTO;
 import com.lms.ccrp.dto.UserDashboardDTO;
 import com.lms.ccrp.entity.User;
 import com.lms.ccrp.repository.JwtTokenRepository;
+import com.lms.ccrp.repository.UserRepository;
 import com.lms.ccrp.service.JwtService;
-import com.lms.ccrp.service.OTPService;
+import com.lms.ccrp.service.UPRService;
 import com.lms.ccrp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/user")
@@ -26,10 +29,13 @@ public class UserController {
     private JwtService jwtService;
 
     @Autowired
-    private OTPService otpService;
+    private UPRService UPRService;
 
     @Autowired
     private JwtTokenRepository jwtTokenRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserDTO dto) throws Exception {
@@ -53,14 +59,36 @@ public class UserController {
         }
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
+    @PostMapping("/verify-password")
+    public ResponseEntity<?> verifyPassword(@RequestBody PasswordResetDTO dto) {
+        String email = dto.getEmail();
+        String otp = dto.getOtp();
         try {
-            String authToken = token.replace("Bearer ", "");
-            userService.logout(authToken);
-            return ResponseEntity.ok("Logged out successfully.");
+            User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Email not registered with us."));
+            if (UPRService.validateOTP(email, otp)) {
+                userService.resetPassword(dto, user);
+                UPRService.clearOTP(email);
+                return ResponseEntity.ok(Collections.singletonMap("token", jwtService.createToken(user)));
+            }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error logging out: " + e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+        return ResponseEntity.status(401).body("Invalid OTP");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody PasswordResetDTO dto) {
+        String email = dto.getEmail();
+        try {
+            Optional<User> userOpt = userRepository.findByEmail(email);
+            if (userOpt.isEmpty()) return ResponseEntity.status(404).body("Email not registered with us.");
+            if (!userService.matchPassword(dto, userOpt.get())) {
+                UPRService.generateOTP(email);
+                return ResponseEntity.ok("OTP sent to email");
+            }
+            return ResponseEntity.badRequest().body("New password must be different.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -71,7 +99,7 @@ public class UserController {
             UserDashboardDTO dto = userService.fetchUserDashboard(authToken);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
-            throw new RuntimeException("Error logging out: " + e.getMessage());
+            throw new RuntimeException("Error in user dashboard: " + e.getMessage());
         }
     }
 }
