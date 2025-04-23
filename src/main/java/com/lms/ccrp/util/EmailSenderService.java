@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +32,7 @@ public class EmailSenderService {
     @Value("${spring.mail.username}")
     private String companyEmail;
 
+    @Async
     public String sendRedemptionRequestEmailToUser(Long userId, RewardHistoryDTO transactionHistoryDTO) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User doesn't exist"));
         Customer customer = customerRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Customer doesn't exist"));
@@ -65,6 +67,7 @@ public class EmailSenderService {
      *                        subject, username, and the number of redeemed points
      * @return a string message indicating whether the email was sent successfully or if there was an error
      */
+    @Async
     public String sendSuccessfullRedemptionEmailToUser(NotificationDTO notificationDTO) {
         String subject = "You’ve Successfully Redeemed " + notificationDTO.getPoints() + " Points.";
         try {
@@ -94,6 +97,7 @@ public class EmailSenderService {
      *                        and the number of points attempted to redeem
      * @return a string message indicating whether the email was sent successfully or if there was an error
      */
+    @Async
     public String sendFailureRedemptionEmailToUser(NotificationDTO notificationDTO) {
         String subject = "Your Redemption Request for " + notificationDTO.getPoints() + " Points Has Been Rejected.";
         try {
@@ -112,7 +116,7 @@ public class EmailSenderService {
         }
     }
 
-
+    @Async
     public String sendSuccessPointsEarnedEmailToUser(NotificationDTO notificationDTO) {
         String subject = "You've earned " + notificationDTO.getPoints() + " Points.";
         try {
@@ -131,6 +135,7 @@ public class EmailSenderService {
         }
     }
 
+    @Async
     public String sendPointsExpiredEmailToUser(NotificationDTO notificationDTO) {
         String subject = "Your " + notificationDTO.getPoints() + " Points Has Been Expired.";
         try {

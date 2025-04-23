@@ -321,8 +321,13 @@ public class RewardHistoryService {
         }
         rewardHistoryRepository.saveAll(updatedSourceTransactions);
         customerRepository.saveAll(updatedCustomers);
-        System.out.println("Started sending emails.");
+        triggerEmails(successRedemptionList, failedRedemptionList, successPointsEarnedList, pointsExpiredList);
+        rewardUtils.notifySourceSystem(source);
+        return "Started syncing successfully!";
+    }
 
+    private void triggerEmails(List<NotificationDTO> successRedemptionList, List<NotificationDTO> failedRedemptionList, List<NotificationDTO> successPointsEarnedList, List<NotificationDTO> pointsExpiredList) {
+        System.out.println("Started sending emails.");
         for (NotificationDTO s : successRedemptionList)
             emailSenderService.sendSuccessfullRedemptionEmailToUser(s);
         for (NotificationDTO s : failedRedemptionList)
@@ -331,10 +336,7 @@ public class RewardHistoryService {
             emailSenderService.sendSuccessPointsEarnedEmailToUser(s);
         for (NotificationDTO s : pointsExpiredList)
             emailSenderService.sendPointsExpiredEmailToUser(s);
-
         System.out.println("Sent all emails.");
-        rewardUtils.notifySourceSystem(source);
-        return "Started syncing successfully!";
     }
 
 
