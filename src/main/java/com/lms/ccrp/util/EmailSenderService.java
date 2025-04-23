@@ -7,6 +7,7 @@ import com.lms.ccrp.entity.User;
 import com.lms.ccrp.repository.CustomerRepository;
 import com.lms.ccrp.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -14,6 +15,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+@Log4j2
 @Service
 public class EmailSenderService {
 
@@ -33,7 +35,7 @@ public class EmailSenderService {
     private String companyEmail;
 
     @Async
-    public String sendRedemptionRequestEmailToUser(Long userId, RewardHistoryDTO transactionHistoryDTO) {
+    public void sendRedemptionRequestEmailToUser(Long userId, RewardHistoryDTO transactionHistoryDTO) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User doesn't exist"));
         Customer customer = customerRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Customer doesn't exist"));
         long points = Math.abs(transactionHistoryDTO.getNumberOfPoints());
@@ -50,9 +52,9 @@ public class EmailSenderService {
             helper.setText(emailTemplateGenerator.generateEmailTemplateForPointsRedemptionRequest(username, points), true);
 
             mailSender.send(message);
-            return subject + " Email sent successfully to " + username;
+            log.info(subject + " Email sent successfully to " + username);
         } catch (Exception e) {
-            return subject + " Failed to send email: " + e.getMessage();
+            log.info(subject + " Failed to send email: " + e.getMessage());
         }
     }
 
@@ -65,10 +67,10 @@ public class EmailSenderService {
      *
      * @param notificationDTO the data transfer object containing the recipient email address,
      *                        subject, username, and the number of redeemed points
-     * @return a string message indicating whether the email was sent successfully or if there was an error
+     * @log.info( a string message indicating whether the email was sent successfully or if there was an error
      */
     @Async
-    public String sendSuccessfullRedemptionEmailToUser(NotificationDTO notificationDTO) {
+    public void sendSuccessfullRedemptionEmailToUser(NotificationDTO notificationDTO) {
         String subject = "You’ve Successfully Redeemed " + notificationDTO.getPoints() + " Points.";
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -80,9 +82,9 @@ public class EmailSenderService {
             helper.setText(emailTemplateGenerator.generateEmailTemplateForPointsRedemptionSuccess(notificationDTO), true);
 
             mailSender.send(message);
-            return subject + " Email sent successfully to " + notificationDTO.getUsername();
+            log.info(subject + " Email sent successfully to " + notificationDTO.getUsername());
         } catch (Exception e) {
-            return subject + " Failed to send email: " + e.getMessage();
+            log.info(subject + " Failed to send email: " + e.getMessage());
         }
     }
 
@@ -95,10 +97,10 @@ public class EmailSenderService {
      *
      * @param notificationDTO the data transfer object containing recipient email, username, subject,
      *                        and the number of points attempted to redeem
-     * @return a string message indicating whether the email was sent successfully or if there was an error
+     * @log.info( a string message indicating whether the email was sent successfully or if there was an error
      */
     @Async
-    public String sendFailureRedemptionEmailToUser(NotificationDTO notificationDTO) {
+    public void sendFailureRedemptionEmailToUser(NotificationDTO notificationDTO) {
         String subject = "Your Redemption Request for " + notificationDTO.getPoints() + " Points Has Been Rejected.";
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -110,14 +112,14 @@ public class EmailSenderService {
             helper.setText(emailTemplateGenerator.generateEmailTemplateForPointsRedemptionFailure(notificationDTO), true);
 
             mailSender.send(message);
-            return subject + " Email sent successfully to " + notificationDTO.getUsername();
+            log.info(subject + " Email sent successfully to " + notificationDTO.getUsername());
         } catch (Exception e) {
-            return subject + " Failed to send email: " + e.getMessage();
+            log.info(subject + " Failed to send email: " + e.getMessage());
         }
     }
 
     @Async
-    public String sendSuccessPointsEarnedEmailToUser(NotificationDTO notificationDTO) {
+    public void sendSuccessPointsEarnedEmailToUser(NotificationDTO notificationDTO) {
         String subject = "You've earned " + notificationDTO.getPoints() + " Points.";
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -129,14 +131,14 @@ public class EmailSenderService {
             helper.setText(emailTemplateGenerator.generateEmailTemplateForSuccessPointsEarned(notificationDTO), true);
 
             mailSender.send(message);
-            return subject + " Email sent successfully to " + notificationDTO.getUsername();
+            log.info(subject + " Email sent successfully to " + notificationDTO.getUsername());
         } catch (Exception e) {
-            return subject + " Failed to send email: " + e.getMessage();
+            log.info(subject + " Failed to send email: " + e.getMessage());
         }
     }
 
     @Async
-    public String sendPointsExpiredEmailToUser(NotificationDTO notificationDTO) {
+    public void sendPointsExpiredEmailToUser(NotificationDTO notificationDTO) {
         String subject = "Your " + notificationDTO.getPoints() + " Points Has Been Expired.";
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -148,9 +150,9 @@ public class EmailSenderService {
             helper.setText(emailTemplateGenerator.generateEmailTemplateForPointsExpired(notificationDTO), true);
 
             mailSender.send(message);
-            return subject + " Email sent successfully to " + notificationDTO.getUsername();
+            log.info(subject + " Email sent successfully to " + notificationDTO.getUsername());
         } catch (Exception e) {
-            return subject + " Failed to send email: " + e.getMessage();
+            log.info(subject + " Failed to send email: " + e.getMessage());
         }
     }
 }

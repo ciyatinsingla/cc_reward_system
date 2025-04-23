@@ -39,7 +39,7 @@ public class RewardHistoryController {
             RewardHistoryDTO transactionHistoryDTO = getRewardHistoryDTO(reward, customer, userId);
 
             rewardHistoryService.performRewardTransactions(List.of(transactionHistoryDTO));
-            log.info(emailSenderService.sendRedemptionRequestEmailToUser(userId, transactionHistoryDTO));
+            emailSenderService.sendRedemptionRequestEmailToUser(userId, transactionHistoryDTO);
             return ResponseEntity.ok("User transaction processed successfully.");
 
         } catch (Exception e) {
