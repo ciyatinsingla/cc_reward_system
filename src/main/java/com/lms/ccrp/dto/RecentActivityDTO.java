@@ -12,4 +12,6 @@ public class RecentActivityDTO {
     private long pointsUsed;
     private String rewardDescription;
     private Date requestDate;
+    private String status;
+    private String reason;
 }

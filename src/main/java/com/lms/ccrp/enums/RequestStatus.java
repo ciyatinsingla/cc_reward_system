@@ -1,5 +1,8 @@
 package com.lms.ccrp.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum RequestStatus {
     APPROVED("Approved"),
     REJECTED("Rejected"),
@@ -12,8 +15,13 @@ public enum RequestStatus {
         this.label = label;
     }
 
-    public String getLabel() {
-        return label;
+    public static RequestStatus fromLabel(String label) {
+        for (RequestStatus requestStatus : values()) {
+            if (requestStatus.getLabel().equalsIgnoreCase(label)) {
+                return requestStatus;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with label " + label);
     }
 
     @Override

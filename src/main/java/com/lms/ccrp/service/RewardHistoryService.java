@@ -1,20 +1,22 @@
 package com.lms.ccrp.service;
 
+import com.lms.ccrp.dto.NotificationDTO;
 import com.lms.ccrp.dto.RewardHistoryDTO;
 import com.lms.ccrp.entity.Customer;
 import com.lms.ccrp.entity.RewardHistory;
-import com.lms.ccrp.entity.SourceTransactions;
 import com.lms.ccrp.enums.RequestStatus;
 import com.lms.ccrp.enums.RewardRequestType;
 import com.lms.ccrp.repository.CustomerRepository;
 import com.lms.ccrp.repository.RewardHistoryRepository;
-import com.lms.ccrp.repository.SourceTransactionsRepository;
 import com.lms.ccrp.repository.UserRepository;
+import com.lms.ccrp.util.EmailSenderService;
 import com.lms.ccrp.util.RewardTransactionHistoryMapper;
 import com.lms.ccrp.util.RewardUtils;
+import io.micrometer.common.util.StringUtils;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,10 +31,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -43,9 +42,9 @@ public class RewardHistoryService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final RewardHistoryRepository rewardHistoryRepository;
-    private final SourceTransactionsRepository sourceTransactionsRepository;
     private final RewardUtils rewardUtils;
     private final JwtService jwtService;
+    private final EmailSenderService emailSenderService;
 
     @Value("${source.file.path}")
     private String source;
@@ -117,7 +116,9 @@ public class RewardHistoryService {
                     Customer customer = customerRepository.findById(dto.getCustomerId())
                             .orElseThrow(() -> new RuntimeException("Customer not found: " + dto.getCustomerId()));
                     if (!RewardRequestType.EARNED.equals(dto.getTypeOfRequest()))
-                        dto.setNumberOfPoints(-dto.getNumberOfPoints());
+                        dto.setNumberOfPoints(-Math.abs(dto.getNumberOfPoints()));
+                    else
+                        dto.setNumberOfPoints(Math.abs(dto.getNumberOfPoints()));
                     return RewardHistory.builder()
                             .customerId(dto.getCustomerId())
                             .name(dto.getName().trim())
@@ -215,7 +216,7 @@ public class RewardHistoryService {
 
     /**
      * Reads reward transaction data from the first sheet of the given Excel file
-     * and maps each row (after the header) to a {@link SourceTransactions} object.
+     * and maps each row (after the header) to a {@link RewardHistory} object.
      * <p>
      * The expected columns in each row are:
      * <ol>
@@ -232,14 +233,14 @@ public class RewardHistoryService {
      * The {@code transactionTime} field of each transaction is set to the current date/time
      * at the moment of reading.
      *
-     * @return a {@link List} of {@link SourceTransactions} objects populated from the Excel rows;
+     * @return a {@link List} of {@link RewardHistory} objects populated from the Excel rows;
      * returns an empty list if no data rows are found
      * @throws RuntimeException if an I/O error occurs while opening the file,
      *                          if the file format is invalid, or if any other exception
      *                          arises during reading/mapping
      */
-    public List<SourceTransactions> parseSRTExcelFile() {
-        List<SourceTransactions> transactions = new ArrayList<>();
+    public List<RewardHistory> parseSRTExcelFile() {
+        List<RewardHistory> transactions = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         if (new File(source).exists()) {
             try (FileInputStream fis = new FileInputStream(new File(source));
@@ -253,73 +254,97 @@ public class RewardHistoryService {
                         isHeader = false;
                         continue;
                     }
-                    SourceTransactions transaction = new SourceTransactions();
-                    transaction.setCustomerId(getLongCellValue(row.getCell(0)));
-                    transaction.setName(getStringCellValue(row.getCell(1)));
-                    String date = row.getCell(2).getStringCellValue();
-                    transaction.setDateOfBirth(sdf.parse(date));
-                    transaction.setTypeOfRequest(RewardRequestType.fromLabel(getStringCellValue(row.getCell(3))));
-                    transaction.setRewardDescription(getStringCellValue(row.getCell(4)));
-                    transaction.setNumberOfPoints((long) row.getCell(5).getNumericCellValue());
-                    transaction.setRequesterId(getStringCellValue(row.getCell(6)));
-                    transaction.setTransactionTime(new Date());
+                    long transactionId = getLongCellValue(row.getCell(9));
+                    Optional<RewardHistory> transactionExists = rewardHistoryRepository.findById(transactionId);
+                    if (transactionExists.isEmpty())
+                        throw new RuntimeException("Transaction not found in Reward History.");
+                    RewardHistory transaction = transactionExists.get();
+                    RequestStatus status = RequestStatus.fromLabel(getStringCellValue(row.getCell(7)));
+                    transaction.setRequestStatus(status.name());
+                    String reason = getStringCellValue(row.getCell(8));
+                    if (StringUtils.isEmpty(reason))
+                        throw new RuntimeException("Reason is required.");
+                    transaction.setReason(reason);
                     transactions.add(transaction);
                 }
             } catch (Exception e) {
-                throw new RuntimeException("Error occurred while parsing Source Transactions.");
+                throw new RuntimeException("Invalid or corrupted data found: " + e.getMessage());
             }
         }
         return transactions;
     }
 
     @Transactional
-    public void requestTransactions(@NonNull List<SourceTransactions> sourceTransactionsList) throws Exception {
-        for (SourceTransactions request : sourceTransactionsList) {
+    public String requestTransactions(@NonNull List<RewardHistory> rewardHistoryList) throws Exception {
+        List<NotificationDTO> successRedemptionList = new ArrayList<>();
+        List<NotificationDTO> failedRedemptionList = new ArrayList<>();
+        List<NotificationDTO> successPointsEarnedList = new ArrayList<>();
+        List<NotificationDTO> pointsExpiredList = new ArrayList<>();
+
+        List<Customer> updatedCustomers = new ArrayList<>();
+        List<RewardHistory> updatedSourceTransactions = new ArrayList<>();
+        for (RewardHistory request : rewardHistoryList) {
             Customer customer = customerRepository.findById(request.getCustomerId())
                     .orElseThrow(() -> new RuntimeException("Customer not found: " + request.getCustomerId()));
             Long availablePoints = customer.getTotalPoints();
-            Long transactionPoints = Math.abs(request.getNumberOfPoints());
+            Long transactionPoints = request.getNumberOfPoints();
             RewardRequestType transactionRequestType = request.getTypeOfRequest();
-            boolean isSuccess = true;
-            if (RewardRequestType.EARNED.equals(transactionRequestType)) {
-                customer.setTotalPoints(availablePoints + transactionPoints);
-                request.setRequestStatus(RequestStatus.APPROVED.getLabel());
-                request.setReason("Return policy ended");
-            } else {
-                if (availablePoints < transactionPoints) {
-                    isSuccess = false;
-                    request.setRequestStatus(RequestStatus.REJECTED.getLabel());
-                    request.setReason(RequestStatus.POINTS_UNAVAILABLE.getLabel());
-                    log.info("Customer balance is low. Hence, declining the transaction of {}", transactionRequestType);
-                } else {
-                    request.setRequestStatus(RequestStatus.APPROVED.getLabel());
-                    customer.setTotalPoints(availablePoints - transactionPoints);
-                    request.setReason(RequestStatus.PRODUCT_AVAILABLE.getLabel());
-                    if (RewardRequestType.EXPIRED.equals(transactionRequestType))
-                        request.setReason(RewardRequestType.EXPIRED_MESSAGE.getLabel());
+            if (!RewardRequestType.EARNED.equals(transactionRequestType)) {
+                if (RequestStatus.APPROVED.toString().equalsIgnoreCase(request.getRequestStatus())) {
+                    if (availablePoints < Math.abs(transactionPoints)) {
+                        log.info("Customer balance is low. Hence, declining the transaction of {}", transactionRequestType);
+                        throw new RuntimeException("Invalid or corrupted data found.");
+                    }
+                    customer.setTotalPoints(availablePoints + transactionPoints);
                 }
-            }
+            } else
+                customer.setTotalPoints(availablePoints + transactionPoints);
+
             request.setNumberOfPoints(transactionPoints);
-            SourceTransactions finalTransaction = SourceTransactions.builder()
-                    .customerId(request.getCustomerId())
-                    .name(request.getName())
-                    .dateOfBirth(request.getDateOfBirth())
-                    .typeOfRequest(request.getTypeOfRequest())
-                    .rewardDescription(request.getRewardDescription())
-                    .numberOfPoints(request.getNumberOfPoints())
-                    .transactionTime(new Date())
-                    .requesterId(request.getRequesterId())
-                    .requestStatus(request.getRequestStatus())
-                    .reason(request.getReason())
-                    .build();
+            request.setCompleted();
 
-            if (isSuccess)
-                finalTransaction.setCompleted();
+            NotificationDTO dto = fetchNotificationDTO(customer.getUser().getEmail(), customer.getName(), Math.abs(transactionPoints), request.getReason());
+            if (RewardRequestType.REDEMPTION.equals(transactionRequestType)) {
+                if (RequestStatus.APPROVED.toString().equalsIgnoreCase(request.getRequestStatus()))
+                    successRedemptionList.add(dto);
+                else
+                    failedRedemptionList.add(dto);
+            } else if (RewardRequestType.EARNED.equals(transactionRequestType) &&
+                    RequestStatus.APPROVED.toString().equalsIgnoreCase(request.getRequestStatus()))
+                successPointsEarnedList.add(dto);
+            else if (RewardRequestType.EXPIRED.equals(transactionRequestType) &&
+                    RequestStatus.APPROVED.toString().equalsIgnoreCase(request.getRequestStatus()))
+                pointsExpiredList.add(dto);
 
-            if (isSuccess) customerRepository.save(customer);
-            sourceTransactionsRepository.save(finalTransaction);
+            updatedCustomers.add(customer);
+            updatedSourceTransactions.add(request);
         }
+        rewardHistoryRepository.saveAll(updatedSourceTransactions);
+        customerRepository.saveAll(updatedCustomers);
+        System.out.println("Started sending emails.");
+
+        for (NotificationDTO s : successRedemptionList)
+            emailSenderService.sendSuccessfullRedemptionEmailToUser(s);
+        for (NotificationDTO s : failedRedemptionList)
+            emailSenderService.sendFailureRedemptionEmailToUser(s);
+        for (NotificationDTO s : successPointsEarnedList)
+            emailSenderService.sendSuccessPointsEarnedEmailToUser(s);
+        for (NotificationDTO s : pointsExpiredList)
+            emailSenderService.sendPointsExpiredEmailToUser(s);
+
+        System.out.println("Sent all emails.");
         rewardUtils.notifySourceSystem(source);
+        return "Started syncing successfully!";
+    }
+
+
+    private NotificationDTO fetchNotificationDTO(String recipientTo, String username, long points, String reason) {
+        return NotificationDTO.builder()
+                .recipientTo(recipientTo)
+                .username(username)
+                .points(points)
+                .reason(reason)
+                .build();
     }
 
     /**
@@ -341,11 +366,11 @@ public class RewardHistoryService {
         ZoneId zone = ZoneId.systemDefault();
         Date startOfDay = Date.from(localDate.atStartOfDay(zone).toInstant());
         Date endOfDay = Date.from(localDate.plusDays(1).atStartOfDay(zone).minusNanos(1).toInstant());
-        List<RewardHistory> rewardHistoryTransactions = rewardHistoryRepository.findAllTransactionsForDate(startOfDay, endOfDay);
+        List<RewardHistory> rewardHistoryTransactions = rewardHistoryRepository.findAllUnProcessedTransactionsForDate(startOfDay, endOfDay);
         String[] headers = {
                 "customer_id", "name", "date_of_birth", "type_of_request",
                 "reward_description", "number_of_points", "requester_id",
-                "request_status", "reason"
+                "request_status", "reason", "reference_id"
         };
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("PointsHistory");
@@ -374,12 +399,15 @@ public class RewardHistoryService {
             row.createCell(4).setCellValue(rewardHistory.getRewardDescription());
             row.createCell(5).setCellValue(rewardHistory.getNumberOfPoints());
             row.createCell(6).setCellValue(rewardHistory.getRequesterId());
+            row.createCell(9).setCellValue(rewardHistory.getId());
         }
 
         for (int i = 0; i < headers.length; i++)
             sheet.autoSizeColumn(i);
 
-        try (FileOutputStream fileOut = new FileOutputStream(source)) {
+        File newFile = new File(source);
+        FileUtils.createParentDirectories(newFile);
+        try (FileOutputStream fileOut = new FileOutputStream(newFile)) {
             workbook.write(fileOut);
             workbook.close();
         } catch (IOException e) {

@@ -3,12 +3,12 @@ package com.lms.ccrp.service;
 import com.lms.ccrp.dto.*;
 import com.lms.ccrp.entity.Customer;
 import com.lms.ccrp.entity.JwtToken;
-import com.lms.ccrp.entity.SourceTransactions;
+import com.lms.ccrp.entity.RewardHistory;
 import com.lms.ccrp.entity.User;
 import com.lms.ccrp.enums.Role;
 import com.lms.ccrp.repository.CustomerRepository;
 import com.lms.ccrp.repository.JwtTokenRepository;
-import com.lms.ccrp.repository.SourceTransactionsRepository;
+import com.lms.ccrp.repository.RewardHistoryRepository;
 import com.lms.ccrp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,7 +35,7 @@ public class UserService {
     @Autowired
     private JwtService jwtService;
     @Autowired
-    private SourceTransactionsRepository sourceTransactionsRepository;
+    private RewardHistoryRepository rewardHistoryRepository;
 
     public User createUser(UserDTO userDTO) {
         User user = new User();
@@ -97,8 +97,8 @@ public class UserService {
             udDTO.setName(customer.getName());
             udDTO.setPoints(customer.getTotalPoints());
             List<RecentActivityDTO> raDTOList = new ArrayList<>();
-            List<SourceTransactions> rtList = sourceTransactionsRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
-            for (SourceTransactions rt : rtList) {
+            List<RewardHistory> rtList = rewardHistoryRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
+            for (RewardHistory rt : rtList) {
                 RecentActivityDTO dto = fetchRecentActivityDTO(rt);
                 raDTOList.add(dto);
             }
@@ -154,8 +154,8 @@ public class UserService {
                     .build();
 
             List<RecentActivityDTO> recentActivityList = new ArrayList<>();
-            List<SourceTransactions> rtList = sourceTransactionsRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
-            for (SourceTransactions rt : rtList)
+            List<RewardHistory> rtList = rewardHistoryRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
+            for (RewardHistory rt : rtList)
                 recentActivityList.add(fetchRecentActivityDTO(rt));
             pmDTO.setRecentActivity(recentActivityList);
             allCustomersDTOList.add(pmDTO);
@@ -171,19 +171,21 @@ public class UserService {
     /**
      * Fetches the recent activity details from the given request transaction.
      *
-     * @param sourceTransactions the {@link SourceTransactions} object containing details of the request transaction.
+     * @param rewardHistory the {@link RewardHistory} object containing details of the request transaction.
      * @return object {@link RecentActivityDTO} object containing the transformed data.
      */
-    private RecentActivityDTO fetchRecentActivityDTO(SourceTransactions sourceTransactions) {
+    private RecentActivityDTO fetchRecentActivityDTO(RewardHistory rewardHistory) {
         return RecentActivityDTO.builder()
-                .requestType(switch (sourceTransactions.getTypeOfRequest()) {
+                .requestType(switch (rewardHistory.getTypeOfRequest()) {
                     case EARNED -> "Earned";
                     case EXPIRED -> "Expired";
                     default -> "Redeemed";
                 })
-                .pointsUsed(Math.abs(sourceTransactions.getNumberOfPoints()))
-                .rewardDescription(sourceTransactions.getRewardDescription() != null ? sourceTransactions.getRewardDescription() : "No Description")
-                .requestDate(sourceTransactions.getTransactionTime())
+                .pointsUsed(Math.abs(rewardHistory.getNumberOfPoints()))
+                .status(rewardHistory.getRequestStatus())
+                .reason(rewardHistory.getReason())
+                .rewardDescription(rewardHistory.getRewardDescription() != null ? rewardHistory.getRewardDescription() : "No Description")
+                .requestDate(rewardHistory.getTransactionTime())
                 .build();
     }
 

@@ -7,7 +7,6 @@ import lombok.NonNull;
 public class PasswordResetDTO {
     @NonNull
     private String email;
-    @NonNull
     private String newPassword;
     private String otp;
 }

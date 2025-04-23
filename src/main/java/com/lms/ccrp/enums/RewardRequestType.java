@@ -1,5 +1,8 @@
 package com.lms.ccrp.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum RewardRequestType {
     REDEMPTION("Redemption"),
     EARNED("Points Earned"),
@@ -16,7 +19,6 @@ public enum RewardRequestType {
         return typeOfRequest;
     }
 
-    // fromLabel method to get the enum constant from a label string
     public static RewardRequestType fromLabel(String label) {
         for (RewardRequestType rewardRequestType : values()) {
             if (rewardRequestType.getLabel().equalsIgnoreCase(label)) {

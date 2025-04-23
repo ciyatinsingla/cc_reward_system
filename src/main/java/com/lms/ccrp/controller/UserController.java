@@ -10,14 +10,18 @@ import com.lms.ccrp.repository.UserRepository;
 import com.lms.ccrp.service.JwtService;
 import com.lms.ccrp.service.UPRService;
 import com.lms.ccrp.service.UserService;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailAuthenticationException;
+import org.springframework.mail.MailSendException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.Optional;
 
+@Log4j2
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -78,16 +82,16 @@ public class UserController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestBody PasswordResetDTO dto) {
+        log.info("Reset Password request received.");
         String email = dto.getEmail();
         try {
             Optional<User> userOpt = userRepository.findByEmail(email);
             if (userOpt.isEmpty()) return ResponseEntity.status(404).body("Email not registered with us.");
-            if (!userService.matchPassword(dto, userOpt.get())) {
-                UPRService.generateOTP(email);
-                return ResponseEntity.ok("OTP sent to email");
-            }
-            return ResponseEntity.badRequest().body("New password must be different.");
+            UPRService.generateOTP(email);
+            return ResponseEntity.ok("OTP sent to email");
         } catch (Exception e) {
+            if (e instanceof MailAuthenticationException || e instanceof MailSendException)
+                return ResponseEntity.badRequest().body("Unable to send email.");
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

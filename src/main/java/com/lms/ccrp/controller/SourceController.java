@@ -1,9 +1,10 @@
 package com.lms.ccrp.controller;
 
-import com.lms.ccrp.entity.SourceTransactions;
+import com.lms.ccrp.entity.RewardHistory;
 import com.lms.ccrp.service.RewardHistoryService;
 import com.lms.ccrp.util.AuthUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,10 +23,12 @@ public class SourceController {
     private AuthUtil authUtil;
 
     @GetMapping("/begin")
-    public void beginSync(@RequestHeader("Authorization") String authHeader) throws Exception {
+    public String beginSync(@RequestHeader("Authorization") String authHeader) throws Exception {
         authUtil.authenticateAdminAndFetchId(authHeader);
-        List<SourceTransactions> sourceRecords = service.parseSRTExcelFile();
-        service.requestTransactions(sourceRecords);
+        List<RewardHistory> sourceRecords = service.parseSRTExcelFile();
+        if(CollectionUtils.isEmpty(sourceRecords))
+            return "File is empty, please reach out to the source.";
+        return service.requestTransactions(sourceRecords);
     }
 
     @GetMapping("/end")

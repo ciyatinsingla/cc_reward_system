@@ -18,7 +18,6 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RewardHistory extends Auditable {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,4 +41,13 @@ public class RewardHistory extends Auditable {
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date transactionTime;
+
+    private String requestStatus;
+    private String reason;
+
+    private boolean isCompleted;
+
+    public void setCompleted() {
+        this.isCompleted = true;
+    }
 }
