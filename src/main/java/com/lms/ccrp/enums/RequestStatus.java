@@ -6,8 +6,7 @@ import lombok.Getter;
 public enum RequestStatus {
     APPROVED("Approved"),
     REJECTED("Rejected"),
-    POINTS_UNAVAILABLE("Points not available for use"),
-    PRODUCT_AVAILABLE("Product available for redemption");
+    REQUESTED("Requested");
 
     private final String label;
 

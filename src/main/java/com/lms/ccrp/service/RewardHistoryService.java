@@ -46,8 +46,15 @@ public class RewardHistoryService {
     private final JwtService jwtService;
     private final EmailSenderService emailSenderService;
 
-    @Value("${source.file.path}")
-    private String source;
+    @Value("${source.sent.filepath}")
+    private String sendersPath;
+
+    @Value("${source.received.filepath}")
+    private String receiversPath;
+
+//    source.file.path
+//    source.sent.filepath: D:/RewardHistory/Sent/LMS_Sent.xlsx
+//    source.received.filepath: D:/RewardHistory/Received/LMS_Received.xlsx
 
     /**
      * Parses an Excel file and converts each row (excluding the header) into a {@link RewardHistoryDTO}.
@@ -122,6 +129,7 @@ public class RewardHistoryService {
                     return RewardHistory.builder()
                             .customerId(dto.getCustomerId())
                             .name(dto.getName().trim())
+                            .requestStatus(RequestStatus.REQUESTED.getLabel())
                             .dateOfBirth(customer.getDateOfBirth())
                             .typeOfRequest(dto.getTypeOfRequest())
                             .rewardDescription(dto.getRewardDescription().trim())
@@ -239,11 +247,11 @@ public class RewardHistoryService {
      *                          if the file format is invalid, or if any other exception
      *                          arises during reading/mapping
      */
-    public List<RewardHistory> parseSRTExcelFile() {
+    public List<RewardHistory> parseReceiverExcelFile() {
         List<RewardHistory> transactions = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        if (new File(source).exists()) {
-            try (FileInputStream fis = new FileInputStream(new File(source));
+        if (new File(receiversPath).exists()) {
+            try (FileInputStream fis = new FileInputStream(new File(receiversPath));
                  Workbook workbook = new XSSFWorkbook(fis)) {
 
                 Sheet sheet = workbook.getSheetAt(0);
@@ -322,7 +330,7 @@ public class RewardHistoryService {
         rewardHistoryRepository.saveAll(updatedSourceTransactions);
         customerRepository.saveAll(updatedCustomers);
         triggerEmails(successRedemptionList, failedRedemptionList, successPointsEarnedList, pointsExpiredList);
-        rewardUtils.notifySourceSystem(source);
+        rewardUtils.notifySourceSystem(sendersPath);
         return "Started syncing successfully!";
     }
 
@@ -368,7 +376,7 @@ public class RewardHistoryService {
         ZoneId zone = ZoneId.systemDefault();
         Date startOfDay = Date.from(localDate.atStartOfDay(zone).toInstant());
         Date endOfDay = Date.from(localDate.plusDays(1).atStartOfDay(zone).minusNanos(1).toInstant());
-        List<RewardHistory> rewardHistoryTransactions = rewardHistoryRepository.findAllUnProcessedTransactionsForDate(startOfDay, endOfDay);
+        List<RewardHistory> rewardHistoryTransactions = rewardHistoryRepository.findAllProcessedTransactionsForDate(startOfDay, endOfDay);
         String[] headers = {
                 "customer_id", "name", "date_of_birth", "type_of_request",
                 "reward_description", "number_of_points", "requester_id",
@@ -407,9 +415,9 @@ public class RewardHistoryService {
         for (int i = 0; i < headers.length; i++)
             sheet.autoSizeColumn(i);
 
-        File newFile = new File(source);
-        FileUtils.createParentDirectories(newFile);
-        try (FileOutputStream fileOut = new FileOutputStream(newFile)) {
+        File sendersFile = new File(sendersPath);
+        FileUtils.createParentDirectories(sendersFile);
+        try (FileOutputStream fileOut = new FileOutputStream(sendersFile)) {
             workbook.write(fileOut);
             workbook.close();
         } catch (IOException e) {
@@ -418,4 +426,5 @@ public class RewardHistoryService {
             workbook.close();
         }
     }
+
 }

@@ -67,7 +67,7 @@ public class UPRService {
     private String generatePasswordResetOTPMessage(String otp) {
         return "Hi," + "\n\n" +
                 "Your OTP for resetting your password is: " + otp + "\n\n" +
-                "This OTP is valid for 60 minutes. Please do not share it with anyone.\n\n" +
+                "This OTP is valid for 10 minutes. Please do not share it with anyone.\n\n" +
                 "If you did not request this, please contact our support team immediately.\n\n" +
                 "– CCRP Team";
     }

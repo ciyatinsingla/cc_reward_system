@@ -1,7 +1,6 @@
 package com.lms.ccrp.repository;
 
 import com.lms.ccrp.entity.RewardHistory;
-import com.lms.ccrp.enums.RewardRequestType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,12 +11,10 @@ import java.util.List;
 
 @Repository
 public interface RewardHistoryRepository extends JpaRepository<RewardHistory, Long> {
-    List<RewardHistory> findByCustomerIdAndIsCompletedTrue(Long customerId);
 
     List<RewardHistory> findByCustomerId(Long customerId);
 
-    @Query("SELECT r FROM RewardHistory r WHERE r.transactionTime BETWEEN :startOfDay AND :endOfDay " +
-            "AND r.isCompleted = false")
-    List<RewardHistory> findAllUnProcessedTransactionsForDate(@Param("startOfDay") Date startOfDay, @Param("endOfDay") Date endOfDay);
+    @Query("SELECT r FROM RewardHistory r WHERE r.transactionTime BETWEEN :startOfDay AND :endOfDay ")
+    List<RewardHistory> findAllProcessedTransactionsForDate(@Param("startOfDay") Date startOfDay, @Param("endOfDay") Date endOfDay);
 
 }

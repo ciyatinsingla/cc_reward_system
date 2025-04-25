@@ -97,7 +97,7 @@ public class UserService {
             udDTO.setName(customer.getName());
             udDTO.setPoints(customer.getTotalPoints());
             List<RecentActivityDTO> raDTOList = new ArrayList<>();
-            List<RewardHistory> rtList = rewardHistoryRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
+            List<RewardHistory> rtList = rewardHistoryRepository.findByCustomerId(customer.getCustomerId());
             for (RewardHistory rt : rtList) {
                 RecentActivityDTO dto = fetchRecentActivityDTO(rt);
                 raDTOList.add(dto);
@@ -154,7 +154,7 @@ public class UserService {
                     .build();
 
             List<RecentActivityDTO> recentActivityList = new ArrayList<>();
-            List<RewardHistory> rtList = rewardHistoryRepository.findByCustomerIdAndIsCompletedTrue(customer.getCustomerId());
+            List<RewardHistory> rtList = rewardHistoryRepository.findByCustomerId(customer.getCustomerId());
             for (RewardHistory rt : rtList)
                 recentActivityList.add(fetchRecentActivityDTO(rt));
             pmDTO.setRecentActivity(recentActivityList);

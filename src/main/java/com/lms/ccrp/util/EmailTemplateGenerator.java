@@ -2,15 +2,11 @@ package com.lms.ccrp.util;
 
 import com.lms.ccrp.dto.NotificationDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class EmailTemplateGenerator {
-
-    @Value("${source.file.path}")
-    private String emailFile;
 
     private static final String SIGNATURE = "Best Regards,<br>CCRP Team";
     private static final String FOOTER = "You are receiving this email because you have enrolled in our program.";

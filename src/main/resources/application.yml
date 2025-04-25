@@ -21,7 +21,7 @@ spring:
         host: smtp.gmail.com
         port: 587
         username: ratnenddr.girri@gmail.com
-        password: xhxraty
+        password: test
         properties:
             mail:
                 smtp:
@@ -41,6 +41,7 @@ jwt:
     secret: my_super_secret_key_is_very_secret_JWT_key_123456789
 
 source:
-    file:
-        path: D:/RewardHistory/SRTFILE.xlsx
-
+    sent:
+        filepath: D:/RewardHistory/Sent/LMS_Sent.xlsx
+    received:
+        filepath: D:/RewardHistory/Received/LMS_Received.xlsx

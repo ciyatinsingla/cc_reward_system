@@ -25,9 +25,9 @@ public class SourceController {
     @GetMapping("/begin")
     public String beginSync(@RequestHeader("Authorization") String authHeader) throws Exception {
         authUtil.authenticateAdminAndFetchId(authHeader);
-        List<RewardHistory> sourceRecords = service.parseSRTExcelFile();
-        if(CollectionUtils.isEmpty(sourceRecords))
-            return "File is empty, please reach out to the source.";
+        List<RewardHistory> sourceRecords = service.parseReceiverExcelFile();
+        if (CollectionUtils.isEmpty(sourceRecords))
+            return "Either file isn't present or file is empty.";
         return service.requestTransactions(sourceRecords);
     }
 
