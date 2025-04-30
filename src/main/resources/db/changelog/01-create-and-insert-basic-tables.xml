@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+	<changeSet id="1" author="Ratnenddr Girri">
+		<sql>
+			CREATE TABLE IF NOT EXISTS users (
+			id bigint NOT NULL AUTO_INCREMENT,
+			email varchar(255) DEFAULT NULL,
+			password varchar(255) DEFAULT NULL,
+			username varchar(255) DEFAULT NULL,
+			role enum('ADMIN','USER') DEFAULT NULL,
+			created_date datetime(6) DEFAULT NULL,
+			modified_date datetime(6) DEFAULT NULL,
+			PRIMARY KEY (id)
+			);
+
+			INSERT INTO users (id, email, password, username, role, created_date, modified_date) VALUES
+			(1, 'user1@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user_admin', 'ADMIN', '2025-04-17 17:31:36.982000', '2025-04-17 17:31:36.982000'),
+			(2, 'user2@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user2',      'USER',  '2025-04-17 17:32:06.592000', '2025-04-17 20:26:36.524000'),
+			(3, 'user3@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user3',      'USER',  '2025-04-17 18:44:32.639000', '2025-04-24 19:11:43.020000'),
+			(4, 'user4@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user4',      'USER',  '2025-04-17 18:45:49.925000', '2025-04-17 18:45:49.925000'),
+			(5, 'user5@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user5',      'USER',  '2025-04-17 18:46:05.457000', '2025-04-17 18:46:05.457000'),
+			(6, 'user6@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user6',      'USER',  '2025-04-17 18:46:34.033000', '2025-04-17 18:46:34.033000'),
+			(7, 'user7@gmail.com', '$2a$10$eQmOLugySiwo0OT7hbMdlOs9UduSkpjb.YeKSf5WK9bhzVxHjoeWm', 'user7',      'USER',  '2025-04-17 18:46:34.033000', '2025-04-17 18:46:34.033000');
+
+			CREATE TABLE IF NOT EXISTS customer_details (
+			customer_id bigint NOT NULL AUTO_INCREMENT,
+			user_id bigint DEFAULT NULL,
+			name varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+			isActive bit(1) NOT NULL,
+			creditCardType varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+			creditCardNumber bigint DEFAULT NULL,
+			totalPoints bigint DEFAULT NULL,
+			cardIssuanceDate datetime(6) DEFAULT NULL,
+			dateOfBirth date DEFAULT NULL,
+			created_date datetime(6) DEFAULT NULL,
+			modified_date datetime(6) DEFAULT NULL,
+			PRIMARY KEY (customer_id),
+			UNIQUE KEY UKhpcj2uau6yd339qr69085m9yn (user_id),
+			CONSTRAINT FKqigl94i49i5iwlxtgo6d3q7mh FOREIGN KEY (user_id) REFERENCES users (id)
+			);
+
+			INSERT INTO customer_details (customer_id, user_id, name, isActive, creditCardType, creditCardNumber, totalPoints, cardIssuanceDate, dateOfBirth, created_date, modified_date) VALUES
+			(1, 2, 'User 2', b'1', 'Visa', 4111111111111111, 500, '2017-12-31 00:00:00.000000', '1994-09-12', '2025-04-17 18:47:43.528000', '2025-04-25 18:11:22.054000'),
+			(2, 3, 'User 3', b'1', 'MasterCard', 4111111111111112, 2000, '2025-04-17 18:48:48.642000', '1992-03-25', '2025-04-17 18:48:32.972000', '2025-04-25 18:11:22.054000'),
+			(3, 4, 'User 4', b'1', 'Rupay', 4111111111111113, 800, '2023-09-09 23:20:00.000000', '1995-11-08', '2025-04-17 18:48:48.642000', '2025-04-25 18:11:22.054000'),
+			(4, 5, 'User 5', b'1', 'MasterCard', 4111111111111114, 1050, '2025-04-17 18:48:32.972000', '1990-07-19', '2025-04-17 18:49:05.459000', '2025-04-25 18:11:22.054000'),
+			(5, 6, 'User 6', b'1', 'Visa', 4111111111111115, 900, '1994-09-12 05:30:00.000000', '1993-01-02', '2025-04-17 18:49:25.907000', '2025-04-25 18:11:22.054000'),
+			(6, 7, 'User 7', b'0', 'Visa', 4111111111111116, 1000, '1991-01-01 00:00:00.000000', '1991-12-15', '2025-04-17 18:49:25.907000', '2025-04-18 18:17:23.911000');
+
+			CREATE TABLE IF NOT EXISTS jwt_tokens (
+			id bigint NOT NULL AUTO_INCREMENT,
+			expiryDate datetime(6) DEFAULT NULL,
+			token varchar(255) DEFAULT NULL,
+			userId bigint DEFAULT NULL,
+			PRIMARY KEY (id)
+			);
+
+			CREATE TABLE IF NOT EXISTS rewards (
+			id bigint NOT NULL AUTO_INCREMENT,
+			name varchar(255) DEFAULT NULL,
+			rewardDescription varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+			numberOfPoints bigint DEFAULT NULL,
+			imgUrl varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+			isActive bit(1) NOT NULL,
+			PRIMARY KEY (id)
+			);
+
+			INSERT INTO rewards (id, name, rewardDescription, numberOfPoints, imgUrl, isActive) VALUES
+			(1, 'Amazon Voucher', '₹500 Amazon Gift Card', 500, 'https://i.postimg.cc/SNw5c0L1/logo.png', b'1'),
+			(2, 'Flipkart Coupon', '₹500 Flipkart Gift Voucher', 300, 'https://i.postimg.cc/L4W8PXJt/flipkart.png', b'1'),
+			(3, 'Starbucks Voucher', '₹200 Coffee Voucher', 200, 'https://i.postimg.cc/Z5tYfMF0/starbucks.png', b'1'),
+			(4, 'Zomato Gold Membership', '3-Month Zomato Gold', 450, 'https://i.postimg.cc/TYGnLGZb/zomato.png', b'0'),
+			(5, 'Swiggy Voucher', '₹250 Swiggy Food Coupon', 250, 'https://i.postimg.cc/PJKdnyBL/swiggy.png', b'0'),
+			(6, 'Myntra Coupon', '₹400 Fashion Discount', 400, 'https://i.postimg.cc/L6n0bm8y/myntra.png', b'0'),
+			(7, 'Netflix Subscription', '1-Month Netflix Basic Plan', 700, 'https://i.postimg.cc/Jh1HYGH8/netflix.png', b'0'),
+			(8, 'Uber Ride Coupon', '₹150 Uber Ride Discount', 150, 'https://i.postimg.cc/qvgYw6xC/uber.png', b'0'),
+			(9, 'Google Play Credit', '₹100 Google Play Store Credit', 100, 'https://i.postimg.cc/Bn2rFXBt/googleplay.png', b'0'),
+			(10, 'BookMyShow Voucher', '₹300 Movie Ticket Coupon', 300, 'https://i.postimg.cc/fT2MxvMf/bookmyshow.png', b'0');
+
+			CREATE TABLE IF NOT EXISTS reward_history (
+			id bigint NOT NULL AUTO_INCREMENT,
+			customerId bigint DEFAULT NULL,
+			dateOfBirth date DEFAULT NULL,
+			isCompleted bit(1) NOT NULL,
+			name varchar(255) DEFAULT NULL,
+			numberOfPoints bigint DEFAULT NULL,
+			reason varchar(255) DEFAULT NULL,
+			requestStatus varchar(255) DEFAULT NULL,
+			requesterId varchar(255) DEFAULT NULL,
+			rewardDescription varchar(255) DEFAULT NULL,
+			transactionTime datetime(6) DEFAULT NULL,
+			typeOfRequest enum('EARNED','EXPIRED','EXPIRED_MESSAGE','REDEMPTION') DEFAULT NULL,
+			created_date datetime(6) DEFAULT NULL,
+			modified_date datetime(6) DEFAULT NULL,
+			PRIMARY KEY (id)
+			);
+
+
+
+		</sql>
+	</changeSet>
+
+</databaseChangeLog>
