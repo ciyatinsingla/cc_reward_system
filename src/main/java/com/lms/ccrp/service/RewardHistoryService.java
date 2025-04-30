@@ -295,18 +295,16 @@ public class RewardHistoryService {
             Customer customer = customerRepository.findById(request.getCustomerId())
                     .orElseThrow(() -> new RuntimeException("Customer not found: " + request.getCustomerId()));
             Long availablePoints = customer.getTotalPoints();
-            Long transactionPoints = request.getNumberOfPoints();
             RewardRequestType transactionRequestType = request.getTypeOfRequest();
-            if (!RewardRequestType.EARNED.equals(transactionRequestType)) {
-                if (RequestStatus.APPROVED.toString().equalsIgnoreCase(request.getRequestStatus())) {
-                    if (availablePoints < Math.abs(transactionPoints)) {
-                        log.info("Customer balance is low. Hence, declining the transaction of {}", transactionRequestType);
-                        throw new RuntimeException("Invalid or corrupted data found.");
-                    }
-                    customer.setTotalPoints(availablePoints + transactionPoints);
+            Long transactionPoints = RewardRequestType.EARNED.equals(transactionRequestType) ? Math.abs(request.getNumberOfPoints()) : -Math.abs(request.getNumberOfPoints());
+
+            if (RequestStatus.APPROVED.toString().equalsIgnoreCase(request.getRequestStatus())) {
+                if (!RewardRequestType.EARNED.equals(transactionRequestType) && availablePoints < Math.abs(transactionPoints)) {
+                    log.info("Customer balance is low. Hence, declining the transaction of {}", transactionRequestType);
+                    throw new RuntimeException("Invalid or corrupted data found.");
                 }
-            } else
                 customer.setTotalPoints(availablePoints + transactionPoints);
+            }
 
             request.setNumberOfPoints(transactionPoints);
             request.setCompleted();
